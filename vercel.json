@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["cdg1"],
+  "crons": [
+    {
+      "path": "/api/cron/weekly-scrape",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/cache-snapshot",
+      "schedule": "*/30 * * * *"
+    }
+  ],
+  "functions": {
+    "app/api/cron/weekly-scrape/route.ts": {
+      "maxDuration": 300
+    }
+  }
+}

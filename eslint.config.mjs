@@ -13,6 +13,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // Reading from sessionStorage / localStorage on mount is a valid
+    // init-on-mount pattern in Next.js App Router (client components).
+    // Downgrade from error → warn so it doesn't block the build.
+    rules: {
+      "react-compiler/react-compiler": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

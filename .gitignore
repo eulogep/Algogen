@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+/_next/
 
 # production
 /build
@@ -23,6 +24,8 @@
 # misc
 .DS_Store
 *.pem
+*.log
+.claude/
 
 # debug
 npm-debug.log*
@@ -39,3 +42,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scratch & temp
+temp_backup/
+extracted_files/
+files.zip
+error.json
+test-output.txt
+test-stripe.js
+test.js
+fix-envs.js
+app/test-root/
+scripts/test-*
+!supabase/migrations/
