@@ -1,0 +1,843 @@
+{
+  "_meta": {
+    "title": "Social Algorithm Intelligence Dataset",
+    "description": "Structured data on ranking signals, behaviors, and best practices for major social media platforms. Designed for use as context in Claude API calls.",
+    "version": "1.0.0",
+    "last_updated": "2025-03-25",
+    "usage_note": "Inject the relevant platform object(s) as system context when calling Claude API to get algorithm-aware content recommendations."
+  },
+  "platforms": {
+    "tiktok": {
+      "platform": "TikTok",
+      "algorithm_name": "For You Page (FYP) Algorithm",
+      "ranking_signals": {
+        "primary": [
+          {
+            "signal": "completion_rate",
+            "weight": "very_high",
+            "description": "Percentage of viewers who watch the video to the end. The single most important signal."
+          },
+          {
+            "signal": "rewatch_rate",
+            "weight": "very_high",
+            "description": "Number of times users replay the video. Loops signal strong engagement."
+          },
+          {
+            "signal": "shares",
+            "weight": "high",
+            "description": "External and in-app shares are a top positive signal."
+          },
+          {
+            "signal": "comments",
+            "weight": "high",
+            "description": "Volume and sentiment of comments, especially early ones."
+          },
+          {
+            "signal": "likes",
+            "weight": "medium",
+            "description": "Standard engagement metric; less weighted than shares/completion."
+          },
+          {
+            "signal": "watch_time_seconds",
+            "weight": "high",
+            "description": "Total absolute watch time across all viewers."
+          },
+          {
+            "signal": "follows_from_video",
+            "weight": "high",
+            "description": "New followers gained directly from a specific video."
+          }
+        ],
+        "secondary": [
+          "Sound/audio selection (trending sounds boost reach)",
+          "Text overlay presence and keyword relevance",
+          "Hashtag relevance and specificity",
+          "Device type and connection quality",
+          "User interaction history (niche affinity)"
+        ]
+      },
+      "favored_behaviors": [
+        "Starting with a strong hook in the first 1-3 seconds",
+        "Creating vertical (9:16) native content",
+        "Using trending sounds and audio",
+        "Posting consistently (daily or near-daily)",
+        "Responding to comments with video replies",
+        "Using 3-5 relevant, specific hashtags (mix of niche + broad)",
+        "Creating content that encourages rewatching (looping endings)",
+        "Duet and Stitch-friendly content",
+        "Authentic, raw, behind-the-scenes content",
+        "Participating in active trends quickly"
+      ],
+      "penalized_behaviors": [
+        "Watermarks from other platforms (especially Reels/YouTube Shorts)",
+        "Low video quality or poor lighting",
+        "Violation of Community Guidelines",
+        "Excessive promotional language without value",
+        "Low completion rates (viewers skipping quickly)",
+        "Posting recycled/reposted content",
+        "Misleading or clickbait thumbnails that disappoint"
+      ],
+      "optimal_posting_frequency": {
+        "recommended": "1-4 times per day",
+        "minimum": "3-5 times per week",
+        "notes": "Volume matters significantly on TikTok. More quality posts = more distribution chances."
+      },
+      "top_formats": [
+        "Tutorials and how-to (educational hooks)",
+        "Storytelling with a twist or reveal",
+        "Trending sound + original concept",
+        "Stitch/Duet reactions",
+        "POV (point-of-view) scenarios",
+        "Day-in-the-life vlogs",
+        "Before/After transformations"
+      ],
+      "recommended_posting_windows": {
+        "best_times_utc": ["06:00-09:00", "11:00-13:00", "19:00-23:00"],
+        "best_days": ["Tuesday", "Thursday", "Friday", "Saturday"],
+        "notes": "Adjust to your audience's local timezone. Check TikTok Analytics for your specific audience peak hours."
+      },
+      "technical_specs": {
+        "video_duration": {
+          "optimal": "15-60 seconds",
+          "maximum": "10 minutes (up to 60min for some accounts)",
+          "notes": "7-15 seconds often achieves highest completion rates. Longer content (3-5 min) can perform well for educational niches."
+        },
+        "resolution": "1080x1920 (9:16 vertical)",
+        "frame_rate": "30fps minimum, 60fps preferred",
+        "file_format": "MP4 or MOV",
+        "max_file_size": "287.6 MB",
+        "hashtags": {
+          "recommended_count": "3-5",
+          "strategy": "1 broad trending + 2 niche-specific + 1 content-type tag"
+        },
+        "caption_length": "Up to 2200 characters; keep actionable CTAs short",
+        "audio": "Use TikTok's native sound library for trending boost; original audio can go viral",
+        "thumbnail": "Custom thumbnail (cover frame) selection strongly recommended"
+      },
+      "sources": [
+        "https://newsroom.tiktok.com/en-us/how-tiktok-recommends-videos-for-you",
+        "https://www.tiktok.com/transparency/en/recommendation-system/",
+        "https://ads.tiktok.com/help/article/overview-of-tiktok-ads-manager",
+        "https://sproutsocial.com/insights/tiktok-algorithm/",
+        "https://blog.hootsuite.com/tiktok-algorithm/"
+      ]
+    },
+    "instagram_reels": {
+      "platform": "Instagram",
+      "content_type": "Reels",
+      "algorithm_name": "Instagram Reels Distribution Algorithm",
+      "ranking_signals": {
+        "primary": [
+          {
+            "signal": "watch_time_and_replays",
+            "weight": "very_high",
+            "description": "How long users watch and whether they replay. Critical for Explore page distribution."
+          },
+          {
+            "signal": "shares_to_dms_and_stories",
+            "weight": "very_high",
+            "description": "Shares via DM and resharing to Stories are the top engagement signal for Reels."
+          },
+          {
+            "signal": "saves",
+            "weight": "high",
+            "description": "Indicates lasting value; saves are weighted heavily for Explore distribution."
+          },
+          {
+            "signal": "comments",
+            "weight": "high",
+            "description": "Quality comments (not just emojis) signal meaningful engagement."
+          },
+          {
+            "signal": "likes",
+            "weight": "medium",
+            "description": "Standard signal, less influential than saves/shares."
+          },
+          {
+            "signal": "profile_interactions_after_reel",
+            "weight": "high",
+            "description": "Whether users visit the profile or follow after watching."
+          }
+        ],
+        "secondary": [
+          "Audio track popularity on Instagram",
+          "Visual quality and aesthetic",
+          "Presence of original audio vs. licensed music",
+          "Account authority and historical engagement rate",
+          "Hashtag relevance"
+        ]
+      },
+      "favored_behaviors": [
+        "Filming natively on phone in vertical format (no watermarks)",
+        "Using trending Reels audio from Instagram's library",
+        "Adding captions/text overlays for silent viewing",
+        "Strong visual hook in first frame",
+        "Looping video endings",
+        "Including a clear CTA (save, share, comment prompt)",
+        "Using 3-10 relevant hashtags",
+        "Posting Reels to Feed for maximum distribution",
+        "Engaging with comments within the first hour of posting",
+        "Consistent niche content to build topical authority"
+      ],
+      "penalized_behaviors": [
+        "Watermarks from TikTok or other platforms",
+        "Low resolution or blurry video",
+        "Posting political or sensitive content (reduced distribution by default)",
+        "Excessive text covering the video",
+        "Misleading thumbnails",
+        "Long periods of inactivity before posting",
+        "Inconsistent niche switching"
+      ],
+      "optimal_posting_frequency": {
+        "recommended": "4-7 Reels per week",
+        "minimum": "3 Reels per week",
+        "notes": "Instagram recommends 3-5 Reels/week officially. Consistency matters more than volume."
+      },
+      "top_formats": [
+        "Educational carousels adapted to video",
+        "Quick tutorials (30-60 sec)",
+        "Before/after transformations",
+        "Trending audio + relatable scenario",
+        "'Things I wish I knew' lists",
+        "Behind-the-scenes content",
+        "Collaboration Reels (Collab posts)"
+      ],
+      "recommended_posting_windows": {
+        "best_times_utc": ["08:00-10:00", "12:00-14:00", "19:00-22:00"],
+        "best_days": ["Monday", "Tuesday", "Wednesday", "Friday"],
+        "notes": "Use Instagram Insights (Professional Account required) to see your specific audience activity."
+      },
+      "technical_specs": {
+        "video_duration": {
+          "optimal": "15-30 seconds",
+          "maximum": "90 seconds",
+          "notes": "15-30 second Reels tend to perform best for discovery. Longer Reels (60-90s) work for educational content."
+        },
+        "resolution": "1080x1920 (9:16 vertical)",
+        "frame_rate": "30fps minimum",
+        "file_format": "MP4 or MOV",
+        "max_file_size": "1 GB",
+        "hashtags": {
+          "recommended_count": "3-10",
+          "strategy": "Mix of niche-specific (small/medium volume) + 1-2 broad hashtags"
+        },
+        "caption_length": "Up to 2200 characters; first 125 chars visible without 'more' click",
+        "safe_zone": "Avoid placing key visuals in bottom 35% (UI overlay area)",
+        "thumbnail": "Custom cover image recommended for Feed appearance"
+      },
+      "sources": [
+        "https://creators.instagram.com/blog/how-instagram-algorithm-works",
+        "https://about.instagram.com/blog/announcements/shedding-more-light-on-how-instagram-works",
+        "https://business.instagram.com/blog/reels-insights",
+        "https://blog.hootsuite.com/instagram-algorithm/",
+        "https://sproutsocial.com/insights/instagram-algorithm/"
+      ]
+    },
+    "instagram_feed": {
+      "platform": "Instagram",
+      "content_type": "Feed Posts (Photos & Carousels)",
+      "algorithm_name": "Instagram Feed & Home Algorithm",
+      "ranking_signals": {
+        "primary": [
+          {
+            "signal": "saves",
+            "weight": "very_high",
+            "description": "The most powerful signal for Feed posts. Indicates high value content."
+          },
+          {
+            "signal": "shares",
+            "weight": "very_high",
+            "description": "Sharing to Stories or DMs signals strong resonance."
+          },
+          {
+            "signal": "comments",
+            "weight": "high",
+            "description": "Meaningful comments (length, back-and-forth) are weighted more than emoji comments."
+          },
+          {
+            "signal": "likes",
+            "weight": "medium",
+            "description": "Still relevant but less weighted than saves/shares/comments."
+          },
+          {
+            "signal": "relationship_strength",
+            "weight": "high",
+            "description": "Content from accounts you regularly interact with is prioritized."
+          },
+          {
+            "signal": "carousel_swipe_rate",
+            "weight": "high",
+            "description": "How many slides users swipe through in a carousel post."
+          }
+        ],
+        "secondary": [
+          "Post timing (recency)",
+          "User's past behavior with similar content",
+          "Account engagement history",
+          "Interest signals from browsing behavior"
+        ]
+      },
+      "favored_behaviors": [
+        "Publishing carousel posts (multiple slides extend engagement time)",
+        "Writing longer, value-driven captions with storytelling",
+        "Asking questions in captions to prompt comments",
+        "Using alt text for accessibility and SEO",
+        "Consistent visual aesthetic/grid theme",
+        "Tagging relevant accounts and locations",
+        "Using saves-worthy content (checklists, resources, tips)",
+        "Pinning best posts to profile top",
+        "Posting at audience peak activity times"
+      ],
+      "penalized_behaviors": [
+        "Inconsistent posting (large gaps)",
+        "Buying fake engagement",
+        "Using banned or broken hashtags",
+        "Posting too many posts in a short time window",
+        "Low-quality or stock imagery",
+        "Captions that don't match content (misleading)"
+      ],
+      "optimal_posting_frequency": {
+        "recommended": "3-5 Feed posts per week",
+        "minimum": "1-2 per week",
+        "notes": "Quality over quantity. Carousels often outperform single images 3x in reach."
+      },
+      "top_formats": [
+        "Carousel posts (educational step-by-step)",
+        "Infographic-style single images",
+        "Quote graphics",
+        "Behind-the-scenes photo series",
+        "Product showcases",
+        "User-generated content reposts",
+        "Data visualization carousels"
+      ],
+      "recommended_posting_windows": {
+        "best_times_utc": ["07:00-09:00", "11:00-13:00", "20:00-22:00"],
+        "best_days": ["Tuesday", "Wednesday", "Thursday"],
+        "notes": "Wednesday 11:00 UTC is consistently cited as a top-performing slot globally."
+      },
+      "technical_specs": {
+        "image_ratio": {
+          "feed_square": "1:1 (1080x1080px)",
+          "feed_portrait": "4:5 (1080x1350px) — recommended for maximum screen coverage",
+          "feed_landscape": "1.91:1 (1080x566px)"
+        },
+        "carousel_slides": {
+          "maximum": 20,
+          "optimal": "5-10 slides",
+          "notes": "First slide must stop the scroll; last slide should include CTA"
+        },
+        "file_format": "JPG or PNG for images; MP4 for video",
+        "hashtags": {
+          "recommended_count": "5-15",
+          "strategy": "Use keyword-rich hashtags relevant to niche; avoid oversaturated generic ones"
+        },
+        "caption_length": "Up to 2200 characters; first 125 chars most critical",
+        "alt_text": "Write descriptive alt text for accessibility and potential SEO benefit"
+      },
+      "sources": [
+        "https://creators.instagram.com/blog/how-instagram-algorithm-works",
+        "https://about.instagram.com/blog/announcements/shedding-more-light-on-how-instagram-works",
+        "https://sproutsocial.com/insights/instagram-algorithm/",
+        "https://blog.hootsuite.com/instagram-algorithm/",
+        "https://buffer.com/library/instagram-feed-algorithm/"
+      ]
+    },
+    "youtube_shorts": {
+      "platform": "YouTube",
+      "content_type": "Shorts",
+      "algorithm_name": "YouTube Shorts Feed Algorithm",
+      "ranking_signals": {
+        "primary": [
+          {
+            "signal": "swipe_away_rate",
+            "weight": "very_high",
+            "description": "How quickly viewers swipe away. The inverse of this (retention) is the top signal."
+          },
+          {
+            "signal": "likes_to_dislikes_ratio",
+            "weight": "high",
+            "description": "Net positive sentiment; YouTube explicitly uses this for Shorts."
+          },
+          {
+            "signal": "comments",
+            "weight": "high",
+            "description": "Comments indicate strong engagement and community response."
+          },
+          {
+            "signal": "shares",
+            "weight": "high",
+            "description": "External shares signal strong content value."
+          },
+          {
+            "signal": "subscribers_gained",
+            "weight": "medium",
+            "description": "New subscribers from a Short boosts the video's authority signal."
+          }
+        ],
+        "secondary": [
+          "Click-through rate on thumbnail (for Shorts tab discovery)",
+          "Watch history affinity",
+          "Channel topical authority",
+          "Hashtag relevance (#Shorts hashtag)"
+        ]
+      },
+      "favored_behaviors": [
+        "Hooking viewers in the first 2 seconds",
+        "Creating looping content (last frame connects to first)",
+        "Using #Shorts hashtag in title or description",
+        "Maintaining a consistent upload schedule",
+        "Cross-promoting Shorts in long-form videos",
+        "Using trending audio from YouTube's audio library",
+        "Adding chapters/text overlays",
+        "Posting niche-consistent content to build topical authority",
+        "Engaging with early comments"
+      ],
+      "penalized_behaviors": [
+        "Content with blurry/low quality visuals",
+        "Watermarked content from TikTok or Reels",
+        "Videos exceeding 60 seconds in the Shorts tab",
+        "Misleading titles or thumbnails",
+        "Content violating YouTube Community Guidelines",
+        "Inconsistent niche content (hurts channel topical authority)"
+      ],
+      "optimal_posting_frequency": {
+        "recommended": "1-3 Shorts per day",
+        "minimum": "3-5 per week",
+        "notes": "YouTube Shorts benefits from high volume. Separate channel strategy for Shorts vs. long-form is sometimes recommended."
+      },
+      "top_formats": [
+        "Fast-paced educational tips",
+        "Trending challenge or audio",
+        "Clip compilation (highlights from long-form)",
+        "Reaction/commentary",
+        "Story-driven micro-content",
+        "Listicles (Top 3 / 5 in 60 seconds)"
+      ],
+      "recommended_posting_windows": {
+        "best_times_utc": ["09:00-11:00", "14:00-16:00", "20:00-23:00"],
+        "best_days": ["Thursday", "Friday", "Saturday", "Sunday"],
+        "notes": "Weekends show higher Shorts consumption. Use YouTube Studio Analytics for audience-specific data."
+      },
+      "technical_specs": {
+        "video_duration": {
+          "optimal": "15-45 seconds",
+          "maximum": "60 seconds",
+          "notes": "Videos over 60 seconds are classified as regular videos, not Shorts."
+        },
+        "resolution": "1080x1920 (9:16 vertical)",
+        "frame_rate": "30fps or 60fps",
+        "file_format": "MP4",
+        "hashtags": {
+          "required": "#Shorts",
+          "recommended_count": "3-5 total",
+          "strategy": "#Shorts + 2-4 niche-relevant hashtags"
+        },
+        "title_length": "Up to 100 characters; include hook keyword",
+        "description": "Up to 5000 characters; add relevant keywords and links",
+        "thumbnail": "Auto-generated from video; custom thumbnail supported on desktop"
+      },
+      "sources": [
+        "https://support.google.com/youtube/answer/10059070",
+        "https://blog.youtube/news-and-events/youtube-shorts-fund/",
+        "https://creatoracademy.youtube.com/page/lesson/shorts",
+        "https://sproutsocial.com/insights/youtube-shorts-algorithm/",
+        "https://blog.hootsuite.com/youtube-shorts-algorithm/"
+      ]
+    },
+    "youtube_longform": {
+      "platform": "YouTube",
+      "content_type": "Long-form Videos",
+      "algorithm_name": "YouTube Recommendation & Search Algorithm",
+      "ranking_signals": {
+        "primary": [
+          {
+            "signal": "click_through_rate_ctr",
+            "weight": "very_high",
+            "description": "% of impressions converted to views. Thumbnail + title are the main CTR drivers."
+          },
+          {
+            "signal": "average_view_duration_avd",
+            "weight": "very_high",
+            "description": "Average time watched per view. Longer AVD = stronger recommendation signal."
+          },
+          {
+            "signal": "average_percentage_viewed_apv",
+            "weight": "very_high",
+            "description": "% of video watched on average. Balances AVD for shorter vs. longer videos."
+          },
+          {
+            "signal": "watch_time_total",
+            "weight": "high",
+            "description": "Total cumulative watch time across all viewers (volume × duration)."
+          },
+          {
+            "signal": "likes_and_dislikes",
+            "weight": "high",
+            "description": "Net positive sentiment. YouTube uses this to evaluate audience satisfaction."
+          },
+          {
+            "signal": "comments",
+            "weight": "high",
+            "description": "Comment volume and quality, including creator replies."
+          },
+          {
+            "signal": "saves_to_playlist",
+            "weight": "medium",
+            "description": "Adding to Watch Later or playlists indicates lasting value."
+          },
+          {
+            "signal": "shares",
+            "weight": "high",
+            "description": "External shares signal strong content value."
+          },
+          {
+            "signal": "subscriber_conversion",
+            "weight": "medium",
+            "description": "New subscribers gained per video."
+          }
+        ],
+        "secondary": [
+          "Video title keyword relevance (SEO)",
+          "Description keyword density",
+          "Tags (declining in weight but still relevant for search)",
+          "Chapters (improves UX and search indexing)",
+          "Closed captions / transcript quality",
+          "Posting consistency",
+          "Channel authority in topic cluster"
+        ]
+      },
+      "favored_behaviors": [
+        "Crafting high-CTR thumbnails (faces, contrast, readable text)",
+        "Writing SEO-optimized titles with target keywords",
+        "Front-loading value (strong cold open before intro)",
+        "Using chapters for navigation",
+        "Creating playlists to chain related videos",
+        "Pinning a comment with key links/timestamps",
+        "Uploading custom closed captions",
+        "Consistent upload schedule (weekly or bi-weekly)",
+        "Strong end screen and card placement",
+        "Building topical authority (series, deep-dives in one niche)"
+      ],
+      "penalized_behaviors": [
+        "Clickbait titles/thumbnails that disappoint (high CTR + low AVD)",
+        "Long unedited intros before content begins",
+        "Low audio quality",
+        "Irregular or infrequent uploads (channel dormancy)",
+        "Copyright-infringing music or footage",
+        "Community Guideline violations",
+        "Misleading or sensational content (yellow dollar icon = reduced ads)"
+      ],
+      "optimal_posting_frequency": {
+        "recommended": "1-3 videos per week",
+        "minimum": "1 per week",
+        "notes": "Quality over quantity is paramount for long-form. One excellent video per week beats three mediocre ones."
+      },
+      "top_formats": [
+        "In-depth tutorials and how-to guides",
+        "List videos (Top 10, Best X for Y)",
+        "Case studies and analysis",
+        "Vlogs and documentary-style content",
+        "Interview/podcast format",
+        "Product reviews",
+        "Reaction and commentary videos",
+        "Course-style educational series"
+      ],
+      "recommended_posting_windows": {
+        "best_times_utc": ["14:00-16:00", "18:00-21:00"],
+        "best_days": ["Thursday", "Friday", "Saturday"],
+        "notes": "Upload 2-3 hours before peak viewing time so indexing is complete. Check Studio Analytics for your audience's peak hours."
+      },
+      "technical_specs": {
+        "video_duration": {
+          "optimal": "8-20 minutes (ad break eligibility at 8 min)",
+          "notes": "Videos over 8 minutes can include mid-roll ads (monetization signal). Ideal sweet spot is 10-15 min for engagement."
+        },
+        "resolution": "1920x1080 (16:9) minimum; 4K preferred for future-proofing",
+        "frame_rate": "24, 30, or 60fps",
+        "file_format": "MP4 (H.264 codec recommended)",
+        "thumbnail": {
+          "dimensions": "1280x720px",
+          "format": "JPG or PNG",
+          "max_size": "2 MB",
+          "best_practices": "High contrast, close-up face, minimal text (3-5 words max), consistent branding"
+        },
+        "title": "40-60 characters (front-load keyword); max 100 characters",
+        "description": {
+          "first_2_lines": "Critical — visible before 'Show More'; include primary keyword and hook",
+          "total_length": "Up to 5000 characters",
+          "recommended_elements": ["Primary keyword", "Timestamps/chapters", "Links", "Social media handles", "Related videos"]
+        },
+        "tags": {
+          "recommended_count": "5-15",
+          "strategy": "Exact match keyword first, then variations, then broad topic tags"
+        },
+        "chapters": "Add timestamps in description for YouTube auto-chapters (< 10 chapters recommended)",
+        "cards_and_end_screens": "Use cards after 20% of video; add end screens in last 20 seconds"
+      },
+      "sources": [
+        "https://support.google.com/youtube/answer/9415557",
+        "https://creatoracademy.youtube.com/page/course/get-discovered",
+        "https://blog.youtube/news-and-events/",
+        "https://sproutsocial.com/insights/youtube-algorithm/",
+        "https://backlinko.com/youtube-ranking-factors",
+        "https://vidiq.com/blog/post/youtube-algorithm/"
+      ]
+    },
+    "linkedin": {
+      "platform": "LinkedIn",
+      "content_type": "Feed Posts (Text, Image, Video, Articles, Polls)",
+      "algorithm_name": "LinkedIn Feed Relevance Algorithm",
+      "ranking_signals": {
+        "primary": [
+          {
+            "signal": "dwell_time",
+            "weight": "very_high",
+            "description": "Time spent reading a post without scrolling past. LinkedIn explicitly uses this as a top signal."
+          },
+          {
+            "signal": "comments",
+            "weight": "very_high",
+            "description": "Thoughtful comments trigger re-distribution. Comments are weighted highest in engagement."
+          },
+          {
+            "signal": "reactions",
+            "weight": "high",
+            "description": "All reactions (Like, Love, Insightful, Curious) are weighted. 'Insightful' and 'Love' > 'Like'."
+          },
+          {
+            "signal": "shares_and_reposts",
+            "weight": "high",
+            "description": "Reposts with commentary are particularly valuable."
+          },
+          {
+            "signal": "saves",
+            "weight": "medium",
+            "description": "Bookmark/save indicates lasting value."
+          },
+          {
+            "signal": "connection_and_follower_engagement",
+            "weight": "high",
+            "description": "Engagement from 1st-degree connections triggers distribution to their networks."
+          }
+        ],
+        "secondary": [
+          "Post timing (first 90 minutes are critical for initial distribution)",
+          "Creator Mode status",
+          "Topical relevance to viewer's industry/interests",
+          "Profile credibility (completeness, followers, activity)",
+          "Engagement velocity (speed of early engagement)",
+          "Hashtag relevance and follower count of the hashtag"
+        ]
+      },
+      "favored_behaviors": [
+        "Posting native text-based content (without external links in post body)",
+        "Writing personal stories and professional insights",
+        "Using line breaks and white space for readability",
+        "Ending posts with a clear question or CTA to prompt comments",
+        "Replying to every comment within the first 60-90 minutes",
+        "Posting at consistent times 3-5 days/week",
+        "Using 3-5 relevant hashtags at the end of posts",
+        "Publishing articles for long-form evergreen content",
+        "Tagging people who are genuinely referenced (sparingly)",
+        "Using polls for high engagement and data collection"
+      ],
+      "penalized_behaviors": [
+        "Including external links in the post body (bury in first comment instead)",
+        "Posting generic, non-personalized content",
+        "Engagement pods or artificial engagement",
+        "Excessive self-promotion without value",
+        "Using more than 5 hashtags (diminishing returns)",
+        "Posting and ghosting (not responding to comments)",
+        "Reposting without commentary",
+        "Content flagged as spam or misinformation"
+      ],
+      "optimal_posting_frequency": {
+        "recommended": "3-5 times per week",
+        "minimum": "3 times per week",
+        "notes": "LinkedIn penalizes posting more than once per day for most post types. Consistency over 2-3 months builds algorithmic trust."
+      },
+      "top_formats": [
+        "Text-only posts with strong hook (first 2 lines before 'see more')",
+        "Single image with insights or data",
+        "Carousel documents (PDF slides as 'swipe' posts)",
+        "Native video (uploaded directly, not YouTube link)",
+        "Polls",
+        "LinkedIn Articles (long-form, indexed by Google)",
+        "Newsletter posts"
+      ],
+      "recommended_posting_windows": {
+        "best_times_utc": ["07:00-09:00", "11:00-13:00", "17:00-18:30"],
+        "best_days": ["Tuesday", "Wednesday", "Thursday"],
+        "notes": "Tuesday and Wednesday 08:00-10:00 local time are consistently top performers. Avoid weekends."
+      },
+      "technical_specs": {
+        "text_posts": {
+          "optimal_length": "900-1200 characters",
+          "max_length": "3000 characters",
+          "notes": "Content is truncated at ~210 characters with 'see more'. Hook must appear in the first 2 lines."
+        },
+        "images": {
+          "recommended_ratio": "1:1 (1200x1200) or 1.91:1 (1200x627)",
+          "format": "JPG or PNG",
+          "max_size": "8 MB"
+        },
+        "native_video": {
+          "optimal_duration": "1-3 minutes",
+          "max_duration": "10 minutes",
+          "resolution": "1920x1080 or 1080x1920",
+          "format": "MP4",
+          "notes": "Add captions (auto or manual) — 70%+ of LinkedIn video is watched muted"
+        },
+        "document_carousels": {
+          "format": "PDF",
+          "optimal_slides": "5-15 pages",
+          "max_slides": "300 pages",
+          "notes": "First slide = cover; last slide = CTA"
+        },
+        "hashtags": {
+          "recommended_count": "3-5",
+          "strategy": "1 broad industry + 1-2 niche-specific + 1 trending professional topic"
+        },
+        "articles": {
+          "optimal_length": "1000-2000 words",
+          "seo_note": "LinkedIn Articles are indexed by Google; use keyword-rich title and headers"
+        }
+      },
+      "sources": [
+        "https://www.linkedin.com/business/talent/blog/linkedin-best-practices/how-linkedins-feed-algorithm-works",
+        "https://engineering.linkedin.com/blog/2023/understanding-linkedin-feed",
+        "https://www.linkedin.com/help/linkedin/answer/a521928",
+        "https://buffer.com/library/linkedin-algorithm/",
+        "https://sproutsocial.com/insights/linkedin-algorithm/"
+      ]
+    },
+    "x_twitter": {
+      "platform": "X (formerly Twitter)",
+      "content_type": "Posts (Tweets, Threads, Media Posts)",
+      "algorithm_name": "X For You (FYP) Recommendation Algorithm",
+      "ranking_signals": {
+        "primary": [
+          {
+            "signal": "replies",
+            "weight": "very_high",
+            "description": "Replies (especially back-and-forth threads) are the strongest engagement signal on X."
+          },
+          {
+            "signal": "reposts_with_comment",
+            "weight": "very_high",
+            "description": "Quote posts drive viral distribution and signal strong resonance."
+          },
+          {
+            "signal": "bookmarks",
+            "weight": "high",
+            "description": "X (like Instagram) weights saves/bookmarks heavily as a 'valued content' signal."
+          },
+          {
+            "signal": "likes",
+            "weight": "medium",
+            "description": "Standard engagement signal; less weighted than replies/reposts."
+          },
+          {
+            "signal": "video_view_time",
+            "weight": "high",
+            "description": "For video posts, watch duration is a primary distribution signal."
+          },
+          {
+            "signal": "follows_from_post",
+            "weight": "high",
+            "description": "Gaining followers from a specific post signals high credibility value."
+          },
+          {
+            "signal": "link_clicks",
+            "weight": "low",
+            "description": "X deprioritizes posts that drive traffic away from the platform."
+          }
+        ],
+        "secondary": [
+          "Account credibility (blue checkmark / Premium)",
+          "Engagement velocity in first 30 minutes",
+          "Follower quality (engaged accounts > ghost followers)",
+          "Topic relevance to viewer's interests",
+          "Profile freshness and posting consistency"
+        ]
+      },
+      "favored_behaviors": [
+        "Posting native video content (not YouTube links)",
+        "Writing threads with high information density",
+        "Ending threads with a summary or CTA tweet",
+        "Replying to your own tweets to add context",
+        "Engaging with other accounts in your niche",
+        "Posting without links in tweet body (add link in reply)",
+        "Using X Spaces for audio engagement",
+        "Writing controversial but non-violating takes to spark discussion",
+        "Using trending topics authentically",
+        "X Premium (formerly Twitter Blue) subscribers get boosted distribution"
+      ],
+      "penalized_behaviors": [
+        "Including external links in tweet body (moves to 'following' tab only)",
+        "Posting repetitive content or automation patterns",
+        "Buying followers or engagement",
+        "Policy violations (misinformation, harassment)",
+        "Mass posting/spamming",
+        "Using too many hashtags (1-2 max; more is considered spam)",
+        "Posting without engaging (lurking accounts see reduced reach)"
+      ],
+      "optimal_posting_frequency": {
+        "recommended": "3-5 posts per day",
+        "minimum": "1-2 posts per day",
+        "notes": "X favors high-frequency posting. Threads count as one post. Replies to others also signal activity."
+      },
+      "top_formats": [
+        "Threads (multi-part insight series)",
+        "Single powerful statements (quote-bait)",
+        "Native video (vertical preferred)",
+        "Polls",
+        "Image + insight pairs",
+        "Live commentary / real-time news takes",
+        "Long-form posts (X Premium: up to 25,000 characters)"
+      ],
+      "recommended_posting_windows": {
+        "best_times_utc": ["08:00-10:00", "12:00-14:00", "17:00-20:00"],
+        "best_days": ["Monday", "Tuesday", "Wednesday", "Thursday"],
+        "notes": "X audience is globally distributed. Wednesday and Thursday tend to be peak engagement days."
+      },
+      "technical_specs": {
+        "tweet_length": {
+          "standard": "280 characters",
+          "premium": "25,000 characters (X Premium subscribers)",
+          "notes": "Shorter posts (under 100 chars) often see higher engagement rates"
+        },
+        "threads": {
+          "recommended_length": "5-15 tweets",
+          "structure": "Hook tweet → content → CTA/summary tweet"
+        },
+        "images": {
+          "recommended_ratio": "16:9 (1600x900) or 1:1 (1200x1200)",
+          "max_images_per_tweet": 4,
+          "format": "JPG, PNG, GIF, WebP"
+        },
+        "video": {
+          "max_duration": "2 minutes 20 seconds (standard); 3 hours for Premium",
+          "optimal_duration": "30-90 seconds for organic",
+          "resolution": "1920x1080 or 1080x1920",
+          "format": "MP4 or MOV",
+          "max_size": "512 MB"
+        },
+        "hashtags": {
+          "recommended_count": "1-2",
+          "strategy": "Only use highly relevant trending hashtags; avoid hashtag stuffing"
+        },
+        "links": {
+          "best_practice": "Post the link in the first reply to the tweet, not in the tweet body, to avoid algorithmic demotion"
+        }
+      },
+      "sources": [
+        "https://github.com/twitter/the-algorithm",
+        "https://blog.x.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm",
+        "https://help.twitter.com/en/using-twitter/twitter-timeline",
+        "https://buffer.com/library/twitter-x-algorithm/",
+        "https://sproutsocial.com/insights/twitter-algorithm/"
+      ]
+    }
+  }
+}
