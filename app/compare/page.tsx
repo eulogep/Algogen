@@ -57,6 +57,31 @@ interface CompareResult {
   [platformId: string]: AnalyzeResponse;
 }
 
+async function analyzeForComparison(
+  platform: PlatformId,
+  userProfile: UserProfile
+): Promise<AnalyzeResponse> {
+  const response = await fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ platform, userProfile, compareMode: true }),
+  });
+
+  const payload = await response.json() as AnalyzeResponse & {
+    error?: string;
+    feature?: string;
+  };
+
+  if (!response.ok) {
+    if (payload.error === "UPGRADE_REQUIRED" && payload.feature === "compare") {
+      throw new Error("Le mode comparaison est réservé aux abonnements Pro et Étudiant.");
+    }
+    throw new Error(payload.error ?? "Erreur lors de l'analyse des plateformes.");
+  }
+
+  return payload;
+}
+
 export default function ComparePage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("select");
@@ -85,13 +110,7 @@ export default function ComparePage() {
     setLoading(true); setError(null);
     try {
       const [resA, resB] = await Promise.all(
-        selected.map((platform) =>
-          fetch("/api/analyze", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ platform, userProfile: profile }),
-          }).then((r) => r.json() as Promise<AnalyzeResponse>)
-        )
+        selected.map((platform) => analyzeForComparison(platform, profile))
       );
       setResults({ [selected[0]]: resA, [selected[1]]: resB });
       setStep("results");

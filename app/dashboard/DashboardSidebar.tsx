@@ -10,6 +10,35 @@ const STYLE = {
   fontMono: { fontFamily: "'JetBrains Mono', monospace" }
 };
 
+function NavItem({
+  href,
+  label,
+  icon,
+  pathname,
+}: {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  pathname: string;
+}) {
+  const isActive = pathname === href;
+  return (
+    <Link
+      href={href}
+      className={`flex items-center space-x-2.5 px-2.5 py-[7px] rounded-[7px] text-[12.5px] transition-colors group ${
+        isActive
+          ? "bg-[#18181b] text-[#fafafa]"
+          : "text-[#52525b] hover:text-[#a1a1aa] hover:bg-[#18181b]"
+      }`}
+    >
+      <span className={`opacity-${isActive ? "90" : "50 group-hover:opacity-90"} transition-opacity`}>
+        {icon}
+      </span>
+      <span>{label}</span>
+    </Link>
+  );
+}
+
 export default function DashboardSidebar({ userEmail }: { userEmail: string | null }) {
   const pathname = usePathname();
   
@@ -28,25 +57,6 @@ export default function DashboardSidebar({ userEmail }: { userEmail: string | nu
     ? (userEmail.length > 20 ? userEmail.substring(0, 17) + "..." : userEmail) 
     : "Non connecté";
 
-  const NavItem = ({ href, label, icon }: { href: string; label: string; icon: React.ReactNode }) => {
-    const isActive = pathname === href;
-    return (
-      <Link 
-        href={href}
-        className={`flex items-center space-x-2.5 px-2.5 py-[7px] rounded-[7px] text-[12.5px] transition-colors group ${
-          isActive 
-            ? "bg-[#18181b] text-[#fafafa]" 
-            : "text-[#52525b] hover:text-[#a1a1aa] hover:bg-[#18181b]"
-        }`}
-      >
-        <span className={`opacity-${isActive ? "90" : "50 group-hover:opacity-90"} transition-opacity`}>
-          {icon}
-        </span>
-        <span>{label}</span>
-      </Link>
-    );
-  };
-
   return (
     <div className="w-[220px] h-screen flex-shrink-0 flex flex-col justify-between border-r border-[#18181b] bg-[#09090b] z-10 hidden md:flex" style={STYLE.fontInter}>
       <div className="p-4">
@@ -62,28 +72,32 @@ export default function DashboardSidebar({ userEmail }: { userEmail: string | nu
         <div className="space-y-0.5">
            <div style={STYLE.fontMono} className="text-[10px] text-[#3f3f46] uppercase tracking-[.07em] mb-3 px-1">Navigation</div>
            
-           <NavItem 
+           <NavItem
+             pathname={pathname}
              href="/dashboard/analytics" 
              label="Overview" 
              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>} 
            />
            
-           <NavItem 
+           <NavItem
+             pathname={pathname}
              href="/dashboard/analytics" 
              label="Cache analytics" 
              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>} 
            />
            
-           <NavItem 
+           <NavItem
+             pathname={pathname}
              href="/updates" 
              label="Algo watch" 
              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h4l3-9 5 18 3-9h5"></path></svg>} 
            />
            
-           <NavItem 
-             href="/strategies" 
-             label="Stratégies" 
-             icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>} 
+           <NavItem
+             pathname={pathname}
+             href="/dashboard/experiments"
+             label="Tests de contenu"
+             icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3h6"></path><path d="M10 3v5.5L5.7 16a4 4 0 0 0 3.5 5.9h5.6a4 4 0 0 0 3.5-5.9L14 8.5V3"></path><path d="M8 16h8"></path></svg>}
            />
         </div>
       </div>

@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServiceClient } from "@/lib/supabase/service";
 import { getCacheStats } from "@/lib/cache"; // Accès direct au cache in-memory
 
 export const runtime = "nodejs";
 export const maxDuration = 30; // 30 secondes max pour ce petit script
-
-// Service Role pour contourner RLS sur les tables internes sans jeton d'utilisateur
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function GET(req: NextRequest) {
   // 1. Sécurité Vercel Cron
@@ -21,6 +15,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const supabase = createServiceClient();
+
     // 2. Extraire les statistiques locales de l'instance
     const stats = getCacheStats();
     
@@ -70,8 +66,14 @@ export async function GET(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Cron Cache Snapshot Error]:", error);
-    return NextResponse.json({ error: "Internal Server Error", details: error?.message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Internal Server Error",
+        details: error instanceof Error ? error.message : undefined,
+      },
+      { status: 500 }
+    );
   }
 }

@@ -1,12 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlatformData } from "@/lib/algorithms";
 import { getSessionUser, getUserPlan, checkAnalysisLimit } from "@/lib/plans";
-import type { AnalyzeRequest, AnalyzeResponse } from "@/lib/types";
+import type { AnalyzeRequest, AnalyzeResponse, UserProfile } from "@/lib/types";
 import { callClaudeWithRetry, generateFallbackStrategy } from "@/lib/anthropic";
 import { generateCacheKey, getCache, setCache } from "@/lib/cache";
 import { withRateLimit } from "@/lib/rate-limit";
 import { logAnalytics } from "@/lib/analytics";
 import { createClient } from "@/lib/supabase/server";
+
+async function persistAnalysis(
+  userId: string,
+  platform: AnalyzeRequest["platform"],
+  userProfile: UserProfile,
+  strategy: AnalyzeResponse
+): Promise<void> {
+  const supabase = await createClient();
+  const [historyResult, strategyResult] = await Promise.all([
+    supabase.from("analysis_history").insert({
+      user_id: userId,
+      platform_id: platform,
+      niche: userProfile.niche,
+      objective: userProfile.objective,
+      level: userProfile.level,
+      score: strategy.potential_score,
+      strategy,
+    }),
+    supabase.from("strategies").insert({
+      user_id: userId,
+      platform,
+      profile: userProfile,
+      strategy,
+    }),
+  ]);
+
+  if (historyResult.error) {
+    console.error("Failed to save analysis history:", historyResult.error);
+  }
+  if (strategyResult.error) {
+    console.error("Failed to save strategy:", strategyResult.error);
+  }
+}
 
 async function analyzeHandler(request: NextRequest) {
   try {
@@ -54,6 +87,9 @@ async function analyzeHandler(request: NextRequest) {
 
     if (cachedStrategy) {
       logAnalytics({ type: "cache_hit", platform, responseTimeMs: Date.now() - startTime, source: "cache" });
+      if (user) {
+        await persistAnalysis(user.id, platform, userProfile, cachedStrategy);
+      }
       const responseTime = Date.now() - startTime;
       
       return NextResponse.json({
@@ -146,21 +182,10 @@ Exemple structure (remplace les valeurs):
       await setCache(cacheKey, platformData.platform, strategy);
     }
 
-    // 3️⃣ SAUVEGARDER EN DB liée à l'utilisateur (si connecté)
+    // 3️⃣ SAUVEGARDER L'HISTORIQUE ET LA STRATÉGIE LIÉS À L'UTILISATEUR
     const currentUser = await getSessionUser();
-    if (currentUser && strategy && strategySource !== "fallback") {
-      try {
-        const supabase = await createClient();
-        await supabase.from("strategies").insert({
-          user_id: currentUser.id,
-          platform,
-          profile: userProfile,
-          strategy,
-        });
-      } catch (dbErr) {
-        // Non-blocking — log but don't fail the response
-        console.error("Failed to save strategy to DB:", dbErr);
-      }
+    if (currentUser && strategySource !== "fallback") {
+      await persistAnalysis(currentUser.id, platform, userProfile, strategy);
     }
 
     const responseTime = Date.now() - startTime;

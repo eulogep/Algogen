@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
-import { getStripe } from "@/lib/stripe";
-import { createClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
+import { getStripe } from "@/lib/stripe";
+import { createServiceClient } from "@/lib/supabase/service";
 
-// Client Supabase avec clé anon — les RPC sont SECURITY DEFINER
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const legacySubscription = (
+    invoice as unknown as {
+      subscription?: string | Stripe.Subscription | null;
+    }
+  ).subscription;
+
+  if (typeof legacySubscription === "string") return legacySubscription;
+  if (legacySubscription && typeof legacySubscription === "object") return legacySubscription.id;
+
+  const parentSubscription = invoice.parent?.subscription_details?.subscription;
+  if (typeof parentSubscription === "string") return parentSubscription;
+  if (parentSubscription && typeof parentSubscription === "object") return parentSubscription.id;
+
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -32,73 +40,79 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  const supabase = getSupabase();
+  const supabase = createServiceClient();
 
-  switch (event.type) {
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = session.metadata?.supabase_user_id;
+        const plan = session.metadata?.plan as "pro" | "student" | undefined;
+        if (!userId || !plan) break;
 
-    // ── Paiement réussi ────────────────────────────────────────────────
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.supabase_user_id;
-      const plan = session.metadata?.plan as "pro" | "student" | undefined;
-      if (!userId || !plan) break;
-
-      if (plan === "pro") {
-        await supabase.rpc("activate_pro_plan", {
-          p_user_id: userId,
-          p_subscription: session.subscription as string,
-        });
-      }
-      if (plan === "student") {
-        await supabase.rpc("activate_student_plan", { p_user_id: userId });
-      }
-      break;
-    }
-
-    // ── Subscription annulée → Free ────────────────────────────────────
-    case "customer.subscription.deleted": {
-      const sub = event.data.object as Stripe.Subscription;
-      const userId = sub.metadata?.supabase_user_id;
-      if (userId) {
-        await supabase.rpc("downgrade_to_free_by_user", { p_user_id: userId });
-      } else {
-        await supabase.rpc("downgrade_to_free_by_customer", {
-          p_customer_id: sub.customer as string,
-        });
-      }
-      break;
-    }
-
-    // ── Renouvellement mensuel Pro ─────────────────────────────────────
-    case "invoice.payment_succeeded": {
-      const invoice = event.data.object as Stripe.Invoice;
-      // SDK v17+: subscription moved to parent.subscription_details.subscription
-      const invoiceSubscriptionId =
-        (invoice as unknown as Record<string, unknown>).subscription as string | null ??
-        (invoice.parent as unknown as Record<string, unknown> | undefined)
-          ?.subscription_details as string | null ??
-        null;
-      if (invoice.billing_reason === "subscription_cycle" && invoiceSubscriptionId) {
-        const subs = await getStripe().subscriptions.retrieve(invoiceSubscriptionId);
-        const userId = subs.metadata?.supabase_user_id;
-        if (userId) {
-          await supabase.rpc("activate_pro_plan", {
+        if (plan === "pro") {
+          const { error } = await supabase.rpc("activate_pro_plan", {
             p_user_id: userId,
-            p_subscription: subs.id,
+            p_subscription: session.subscription as string,
           });
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.rpc("activate_student_plan", {
+            p_user_id: userId,
+          });
+          if (error) throw error;
         }
+        break;
       }
-      break;
-    }
 
-    // ── Paiement échoué → Free ─────────────────────────────────────────
-    case "invoice.payment_failed": {
-      const invoice = event.data.object as Stripe.Invoice;
-      await supabase.rpc("downgrade_to_free_by_customer", {
-        p_customer_id: invoice.customer as string,
-      });
-      break;
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const userId = subscription.metadata?.supabase_user_id;
+        const { error } = userId
+          ? await supabase.rpc("downgrade_to_free_by_user", { p_user_id: userId })
+          : await supabase.rpc("downgrade_to_free_by_customer", {
+              p_customer_id: subscription.customer as string,
+            });
+        if (error) throw error;
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = getInvoiceSubscriptionId(invoice);
+        if (invoice.billing_reason !== "subscription_cycle" || !subscriptionId) break;
+
+        const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
+        const userId = subscription.metadata?.supabase_user_id;
+        if (!userId) break;
+
+        const { error } = await supabase.rpc("activate_pro_plan", {
+          p_user_id: userId,
+          p_subscription: subscription.id,
+        });
+        if (error) throw error;
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const { error } = await supabase.rpc("downgrade_to_free_by_customer", {
+          p_customer_id: invoice.customer as string,
+        });
+        if (error) throw error;
+        break;
+      }
     }
+  } catch (err) {
+    console.error("Stripe billing synchronization failed:", {
+      eventId: event.id,
+      eventType: event.type,
+      err,
+    });
+    return NextResponse.json(
+      { error: "Billing synchronization failed" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ received: true });

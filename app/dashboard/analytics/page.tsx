@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,7 +10,9 @@ import {
   Title,
   Tooltip as ChartTooltip,
   Legend,
-  Filler
+  Filler,
+  TooltipItem,
+  ChartOptions,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
@@ -43,13 +44,21 @@ interface CurrentStats {
   l2HitRate: number;
 }
 
-const DEMO_HISTORY: HistoryEntry[] = Array.from({ length: 24 }).map((_, i) => ({
-  timestamp: new Date(Date.now() - (24 - i) * 1800000).toISOString(),
-  l1HitRate: Math.floor(Math.random() * 20) + 60,
-  l2HitRate: Math.floor(Math.random() * 20) + 10,
-  missRate: Math.floor(Math.random() * 10) + 0,
-  totalRequests: 500 + i * 12,
-}));
+interface PlatformAnalytics {
+  count: number;
+  successRate: number;
+  avgResponseTimeMs: number;
+}
+
+const PLATFORM_NAMES: Record<string, string> = {
+  tiktok: "TikTok",
+  instagram_reels: "Instagram Reels",
+  instagram_feed: "Instagram Feed",
+  youtube_shorts: "YouTube Shorts",
+  youtube_longform: "YouTube Long",
+  linkedin: "LinkedIn",
+  x_twitter: "X",
+};
 
 const STYLE = {
   fontInter: { fontFamily: "'Inter', sans-serif" },
@@ -61,66 +70,79 @@ export default function RefinedAnalyticsDashboard() {
   const [currentStats, setCurrentStats] = useState<CurrentStats | null>(null);
   const [savingsText, setSavingsText] = useState<string>("$0.00");
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [lastUpdated, setLastUpdated] = useState<number>(0);
-  const [isDemo, setIsDemo] = useState<boolean>(false);
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [showDropdown, setShowDropdown] = useState<boolean>(false);
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
+  const [platformStats, setPlatformStats] = useState<Record<string, PlatformAnalytics>>({});
   const fetchHistory = async () => {
     try {
       const res = await fetch("/api/cache/history");
-      const data = await res.json();
-      if (data.history && data.history.length > 0) {
-        setHistory(data.history);
-        setIsDemo(false);
-      } else {
-        setHistory(DEMO_HISTORY);
-        setIsDemo(true);
-      }
-    } catch {
-      setHistory(DEMO_HISTORY);
-      setIsDemo(true);
+      if (!res.ok) throw new Error("Impossible de récupérer l’historique.");
+      const data = await res.json() as { history?: HistoryEntry[] };
+      setHistory(Array.isArray(data.history) ? data.history : []);
+    } catch (error: unknown) {
+      console.warn("Cache history unavailable:", error);
+      setHistory([]);
     }
   };
 
   const fetchCurrent = async () => {
     try {
       const res = await fetch("/api/cache/stats");
-      const data = await res.json();
-      const stats = data.stats as CurrentStats;
-      if (stats.totalRequests === 0) {
-        setCurrentStats({
-          l1Hits: 1200, l2Hits: 400, misses: 50, totalRequests: 1650,
-          l1HitRate: 72, l2HitRate: 24
-        });
-        setSavingsText("$16.00");
-      } else {
-        setCurrentStats(stats);
-        setSavingsText(data.estimatedSavings);
-      }
-      setLastUpdated(0);
-    } catch (e) {
-      console.warn(e);
+      if (!res.ok) throw new Error("Impossible de récupérer les statistiques.");
+      const data = await res.json() as {
+        stats?: CurrentStats;
+        estimatedSavings?: string;
+      };
+      setCurrentStats(data.stats ?? {
+        l1Hits: 0,
+        l2Hits: 0,
+        misses: 0,
+        totalRequests: 0,
+        l1HitRate: 0,
+        l2HitRate: 0,
+      });
+      setSavingsText(data.estimatedSavings ?? "$0.00");
+    } catch (error: unknown) {
+      console.warn("Cache stats unavailable:", error);
+      setCurrentStats({
+        l1Hits: 0,
+        l2Hits: 0,
+        misses: 0,
+        totalRequests: 0,
+        l1HitRate: 0,
+        l2HitRate: 0,
+      });
+      setSavingsText("$0.00");
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.email) setUserEmail(user.email);
-    });
+  const fetchPlatformStats = async () => {
+    try {
+      const res = await fetch("/api/analytics");
+      if (!res.ok) throw new Error("Impossible de récupérer les métriques par plateforme.");
+      const data = await res.json() as {
+        snapshot?: { byPlatform?: Record<string, PlatformAnalytics> };
+      };
+      setPlatformStats(data.snapshot?.byPlatform ?? {});
+    } catch (error: unknown) {
+      console.warn("Platform analytics unavailable:", error);
+      setPlatformStats({});
+    }
+  };
 
-    fetchHistory();
-    fetchCurrent();
-    const interval = setInterval(fetchCurrent, 30000);
-    const clock = setInterval(() => setLastUpdated((prev) => prev + 1), 1000);
-    return () => { clearInterval(interval); clearInterval(clock); };
+  useEffect(() => {
+    const refreshDashboard = () => {
+      void fetchHistory();
+      void fetchCurrent();
+      void fetchPlatformStats();
+    };
+
+    const initialRefresh = window.setTimeout(refreshDashboard, 0);
+    const interval = window.setInterval(refreshDashboard, 30000);
+    return () => {
+      window.clearTimeout(initialRefresh);
+      window.clearInterval(interval);
+    };
   }, []);
 
   const formatTime = (iso: string) => {
@@ -181,7 +203,7 @@ export default function RefinedAnalyticsDashboard() {
     ]
   };
 
-  const lineChartOptions = {
+  const lineChartOptions: ChartOptions<"line"> = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index' as const, intersect: false },
@@ -196,7 +218,7 @@ export default function RefinedAnalyticsDashboard() {
         padding: 10,
         cornerRadius: 6,
         callbacks: {
-          afterBody: function(context: any[]) {
+          afterBody: function(context: TooltipItem<"line">[]) {
             if (context.length > 0) {
                const idx = context[0].dataIndex;
                return `Total: ${history[idx].totalRequests}`;
@@ -207,27 +229,30 @@ export default function RefinedAnalyticsDashboard() {
     },
     scales: {
       x: { 
-        grid: { color: '#111', drawBorder: false }, 
+        grid: { color: '#111' },
+        border: { display: false },
         ticks: { color: '#27272a', font: { family: "'JetBrains Mono', monospace", size: 10 }, maxTicksLimit: 7 } 
       },
       y: { 
         min: 0, 
         max: 100, 
-        grid: { color: '#111', drawBorder: false }, 
-        ticks: { color: '#27272a', font: { family: "'JetBrains Mono', monospace", size: 10 }, stepSize: 25, callback: (v: any) => `${v}%` } 
+        grid: { color: '#111' },
+        border: { display: false },
+        ticks: { color: '#27272a', font: { family: "'JetBrains Mono', monospace", size: 10 }, stepSize: 25, callback: (v: string | number) => `${v}%` }
       }
     }
   };
 
   const tableHistory = history.slice(-6).reverse();
 
-  const platformsData = [
-    { name: 'TikTok', value: 420, percent: 35, color: '#22c55e' },
-    { name: 'Instagram', value: 310, percent: 28, color: '#818cf8' },
-    { name: 'YouTube', value: 280, percent: 22, color: '#f59e0b' },
-    { name: 'LinkedIn', value: 150, percent: 10, color: '#38bdf8' },
-    { name: 'X', value: 90, percent: 5, color: '#ef4444' }
-  ];
+  const hasHistory = history.length > 0;
+  const platformRows = Object.entries(platformStats)
+    .sort(([, left], [, right]) => right.count - left.count)
+    .map(([platform, stats]) => ({
+      name: PLATFORM_NAMES[platform] ?? platform,
+      ...stats,
+    }));
+  const maxPlatformRequests = Math.max(...platformRows.map((row) => row.count), 1);
 
   const getTrend = (current: number, past: number | undefined) => {
     if (past === undefined || past === null) return { icon: "→", color: "#3f3f46", diff: 0 };
@@ -241,7 +266,6 @@ export default function RefinedAnalyticsDashboard() {
   const l1Trend = getTrend(currentStats?.l1HitRate || 0, pastRecord?.l1HitRate);
   const l2Trend = getTrend(currentStats?.l2HitRate || 0, pastRecord?.l2HitRate);
   const missTrend = getTrend(currentMissRate, pastRecord?.missRate);
-  const savingsMockDiff = "↑ +$0.40";
 
   if (isLoading && !currentStats) {
     return <div className="h-screen w-full bg-[#09090b]" />;
@@ -256,7 +280,7 @@ export default function RefinedAnalyticsDashboard() {
         <div className="p-[20px_24px_16px] border-b border-[#18181b] flex justify-between items-center">
           <div>
             <h1 className="text-[14px] font-medium text-[#fafafa] tracking-tight">Cache analytics</h1>
-            <p style={STYLE.fontMono} className="text-[11px] text-[#3f3f46] mt-1">dernières 24h {isDemo ? "· mode démo" : ""}</p>
+            <p style={STYLE.fontMono} className="text-[11px] text-[#3f3f46] mt-1">dernières 24h · données observées uniquement</p>
           </div>
         </div>
 
@@ -276,7 +300,7 @@ export default function RefinedAnalyticsDashboard() {
                  {l1Trend.icon} {l1Trend.diff > 0 && '+'}{l1Trend.diff}% vs 1h
                </div>
                <div className="w-full h-[2px] bg-[#18181b] rounded-[1px] overflow-hidden">
-                 <div className="h-full bg-[#22c55e]" style={{ width: `72%` }} />
+                 <div className="h-full bg-[#22c55e]" style={{ width: `${currentStats?.l1HitRate ?? 0}%` }} />
                </div>
             </div>
           </div>
@@ -294,7 +318,7 @@ export default function RefinedAnalyticsDashboard() {
                  {l2Trend.icon} {l2Trend.diff > 0 && '+'}{l2Trend.diff}% vs 1h
                </div>
                <div className="w-full h-[2px] bg-[#18181b] rounded-[1px] overflow-hidden">
-                 <div className="h-full bg-[#818cf8]" style={{ width: `24%` }} />
+                 <div className="h-full bg-[#818cf8]" style={{ width: `${currentStats?.l2HitRate ?? 0}%` }} />
                </div>
             </div>
           </div>
@@ -312,7 +336,7 @@ export default function RefinedAnalyticsDashboard() {
                  {missTrend.icon} {missTrend.diff > 0 && '+'}{missTrend.diff}% vs 1h
                </div>
                <div className="w-full h-[2px] bg-[#18181b] rounded-[1px] overflow-hidden">
-                 <div className="h-full bg-[#ef4444]" style={{ width: `4%` }} />
+                 <div className="h-full bg-[#ef4444]" style={{ width: `${currentMissRate}%` }} />
                </div>
             </div>
           </div>
@@ -327,10 +351,10 @@ export default function RefinedAnalyticsDashboard() {
             </div>
             <div>
                <div style={{...STYLE.fontMono, color: "#22c55e"}} className="text-[10.5px] mb-[10px] mt-1">
-                 {savingsMockDiff} vs 1h
+                 {currentStats?.totalRequests ? `${currentStats.totalRequests} requêtes observées` : "Aucune requête observée"}
                </div>
                <div className="w-full h-[2px] bg-[#18181b] rounded-[1px] overflow-hidden">
-                 <div className="h-full bg-[#f59e0b]" style={{ width: `88%` }} />
+                 <div className="h-full bg-[#f59e0b]" style={{ width: `${Math.min(100, (currentStats?.totalRequests ?? 0) / 10)}%` }} />
                </div>
             </div>
           </div>
@@ -356,7 +380,13 @@ export default function RefinedAnalyticsDashboard() {
             </div>
           </div>
           <div className="h-[140px] w-full">
-            <Line data={lineChartData} options={lineChartOptions as any} />
+            {hasHistory ? (
+              <Line data={lineChartData} options={lineChartOptions} />
+            ) : (
+              <div className="h-full flex items-center justify-center border border-dashed border-[#27272a] rounded-[8px] text-[11px] text-[#52525b]" style={STYLE.fontMono}>
+                Aucun snapshot réel n’est encore disponible.
+              </div>
+            )}
           </div>
         </div>
 
@@ -369,7 +399,9 @@ export default function RefinedAnalyticsDashboard() {
                 SNAPSHOTS RÉCENTS
              </div>
              <div className="flex flex-col">
-               {tableHistory.map((row, idx) => {
+               {tableHistory.length === 0 ? (
+                 <p className="text-[11px] text-[#52525b]" style={STYLE.fontMono}>Aucun snapshot réel disponible.</p>
+               ) : tableHistory.map((row, idx) => {
                   const prevL1 = tableHistory[idx + 1]?.l1HitRate;
                   let tIcon = "→"; let tColor = "#3f3f46";
                   if (prevL1) {
@@ -395,13 +427,20 @@ export default function RefinedAnalyticsDashboard() {
                 HITS PAR PLATEFORME
              </div>
              <div className="flex flex-col space-y-3 pt-1">
-               {platformsData.map((plat) => (
-                 <div key={plat.name} className="flex items-center space-x-3">
-                   <div className="w-[68px] text-[12px] text-[#71717a] truncate">{plat.name}</div>
+               {platformRows.length === 0 ? (
+                 <p className="text-[11px] text-[#52525b] leading-relaxed" style={STYLE.fontMono}>
+                   Aucune analyse réelle observée sur cette instance au cours des dernières 24 heures.
+                 </p>
+               ) : platformRows.map((platform) => (
+                 <div key={platform.name} className="flex items-center space-x-3">
+                   <div className="w-[86px] text-[12px] text-[#71717a] truncate">{platform.name}</div>
                    <div className="flex-1 h-[2px] bg-[#18181b] rounded-[1px] overflow-hidden">
-                      <div className="h-full rounded-[1px]" style={{ width: `${plat.percent}%`, backgroundColor: plat.color }} />
+                     <div
+                       className="h-full rounded-[1px] bg-[#38bdf8]"
+                       style={{ width: `${(platform.count / maxPlatformRequests) * 100}%` }}
+                     />
                    </div>
-                   <div style={STYLE.fontMono} className="w-[26px] text-right text-[10.5px] text-[#3f3f46]">{plat.percent}%</div>
+                   <div style={STYLE.fontMono} className="w-[32px] text-right text-[10.5px] text-[#3f3f46]">{platform.count}</div>
                  </div>
                ))}
              </div>

@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
 
-// On utilise Supabase Client Public pour de la simple requête 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export async function GET() {
   try {
+    const supabase = createServiceClient();
     const { data: rows, error } = await supabase
       .from("cache_stats_history")
       .select("recorded_at, l1_hit_rate, l2_hit_rate, miss_rate, total_requests, estimated_savings_dollars")
@@ -32,7 +27,7 @@ export async function GET() {
     }));
 
     return NextResponse.json({ history });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Erreur read history:", err);
     return NextResponse.json({ error: "Impossible de récupérer l'historique" }, { status: 500 });
   }

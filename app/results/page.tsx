@@ -6,7 +6,7 @@ import { PLATFORM_MAP } from "@/lib/platforms";
 import { saveToHistory } from "@/lib/history";
 import { insertHistory } from "@/lib/supabase/history-db";
 import { createClient } from "@/lib/supabase/client";
-import type { AnalyzeResponse, PlatformId } from "@/lib/types";
+import type { AnalyzeResponse, Level, Objective, PlatformId } from "@/lib/types";
 
 // ── Score gauge ────────────────────────────────────────────────────────────
 function ScoreGauge({ score, color }: { score: number; color: string }) {
@@ -58,29 +58,36 @@ export default function ResultsPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("algolens_strategy");
-    const pid = sessionStorage.getItem("algolens_platform") as PlatformId | null;
-    if (!raw || !pid) { router.push("/"); return; }
-    const parsed = JSON.parse(raw) as AnalyzeResponse;
-    setData({ strategy: parsed, platformId: pid });
-
-    // Persist to history (fire-and-forget)
-    const rawProfile = sessionStorage.getItem("algolens_profile");
-    const profile = rawProfile ? JSON.parse(rawProfile) : null;
-    const niche = profile?.niche ?? "—";
-    const objective = profile?.objective ?? "visibility";
-    const level = profile?.level ?? "beginner";
-
-    const persist = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await insertHistory(pid, niche, objective, level, parsed);
-      } else {
-        saveToHistory(pid, niche, objective, level, parsed);
+    const initialLoad = window.setTimeout(() => {
+      const raw = sessionStorage.getItem("algolens_strategy");
+      const pid = sessionStorage.getItem("algolens_platform") as PlatformId | null;
+      if (!raw || !pid) {
+        router.push("/");
+        return;
       }
-    };
-    persist();
+
+      const parsed = JSON.parse(raw) as AnalyzeResponse;
+      setData({ strategy: parsed, platformId: pid });
+
+      // Persist to history (fire-and-forget)
+      const rawProfile = sessionStorage.getItem("algolens_profile");
+      const profile = rawProfile ? JSON.parse(rawProfile) as { niche?: string; objective?: Objective; level?: Level } : null;
+      const niche = profile?.niche ?? "—";
+      const objective = profile?.objective ?? "visibility";
+      const level = profile?.level ?? "beginner";
+
+      void (async () => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await insertHistory(pid, niche, objective, level, parsed);
+        } else {
+          saveToHistory(pid, niche, objective, level, parsed);
+        }
+      })();
+    }, 0);
+
+    return () => window.clearTimeout(initialLoad);
   }, [router]);
 
   if (!data) {
@@ -114,6 +121,17 @@ export default function ResultsPage() {
   };
 
   const handlePdf = () => window.print();
+
+  const handleCreateExperiment = () => {
+    const recommendedAction = strategy.quick_wins?.[0] ?? strategy.top_5_levers?.[0] ?? "Tester un nouveau format de contenu";
+    const params = new URLSearchParams({
+      title: `Tester : ${recommendedAction}`.slice(0, 180),
+      hypothesis: `Nous testerons « ${recommendedAction} » pour mesurer son effet sur la performance organique.`,
+      platform: platformId,
+      targetKpi: "Portée / rétention",
+    });
+    router.push(`/dashboard/experiments?${params.toString()}`);
+  };
 
   return (
     <main
@@ -286,7 +304,8 @@ export default function ResultsPage() {
           <div className="glass no-print" style={{ padding: "28px", textAlign: "center", animation: `fadeUp 0.5s ease 0.35s forwards`, opacity: 0 }}>
             <p style={{ fontWeight: 600, marginBottom: "16px" }}>Prêt à analyser une autre plateforme ?</p>
             <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
-              <button className="btn-primary" onClick={handleRestart}>🔄 Nouvelle analyse</button>
+              <button className="btn-primary" onClick={handleCreateExperiment}>🧪 Créer un test à partir du diagnostic</button>
+              <button className="btn-secondary" onClick={handleRestart}>🔄 Nouvelle analyse</button>
               <button className="btn-secondary" onClick={() => router.push("/compare")}>⚖️ Mode Comparaison</button>
             </div>
           </div>

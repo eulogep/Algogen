@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe, isStudentEmail } from "@/lib/stripe";
 import { getSessionUser, getUserPlan } from "@/lib/plans";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -41,7 +33,7 @@ export async function POST(request: Request) {
   }
 
   const stripe = getStripe();
-  const supabase = getSupabase();
+  const supabase = createServiceClient();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://algolens-five.vercel.app";
 
   // ── Récupérer ou créer le Stripe customer ────────────────────────────
@@ -59,10 +51,18 @@ export async function POST(request: Request) {
       metadata: { supabase_user_id: user.id },
     });
     customerId = customer.id;
-    await supabase.rpc("set_stripe_customer", {
+    const { error: customerUpdateError } = await supabase.rpc("set_stripe_customer", {
       p_user_id: user.id,
       p_customer_id: customerId,
     });
+
+    if (customerUpdateError) {
+      console.error("Unable to persist Stripe customer:", customerUpdateError);
+      return NextResponse.json(
+        { error: "Impossible de préparer la facturation. Réessayez plus tard." },
+        { status: 500 }
+      );
+    }
   }
 
   // ── Créer la session Stripe Checkout ────────────────────────────────

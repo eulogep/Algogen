@@ -5,15 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServiceClient } from "@/lib/supabase/service";
 import { scrapeAllSources } from "@/lib/scraper";
 import { analyzeArticlesBatch } from "@/lib/algo-analyzer";
 import type { AlgoUpdate } from "@/lib/algo-analyzer";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 min max (Vercel Pro)
@@ -77,6 +72,7 @@ export async function GET(req: NextRequest) {
 }
 
 async function saveUpdatesToDB(updates: AlgoUpdate[]): Promise<void> {
+  const supabase = createServiceClient();
   const rows = updates.map((u) => ({
     platform: u.platform,
     summary: u.summary,

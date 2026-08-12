@@ -52,9 +52,9 @@ export function checkRateLimit(
  */
 export async function withRateLimit(
   request: NextRequest,
-  handler: (req: NextRequest) => Promise<NextResponse>,
+  handler: (req: NextRequest) => Promise<Response>,
   options: { maxRequests?: number; windowMs?: number } = {}
-): Promise<NextResponse> {
+): Promise<Response> {
   const { maxRequests = 10, windowMs = 60 * 1000 } = options;
 
   // Utiliser IP ou user_id comme identifier
@@ -72,7 +72,7 @@ export async function withRateLimit(
       const cloned = request.clone();
       const body = await cloned.json();
       if (body.platform) platform = body.platform;
-    } catch (e) {}
+    } catch {}
 
     logAnalytics({
       type: "rate_limit_hit",

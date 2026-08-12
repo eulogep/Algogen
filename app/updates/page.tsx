@@ -1,5 +1,4 @@
 import { createClient as createSSRClient } from "@/lib/supabase/server";
-import { Suspense } from "react";
 
 const PLATFORM_LABELS: Record<string, string> = {
   tiktok: "TikTok",
@@ -77,46 +76,6 @@ async function getUpdates(platform?: string): Promise<AlgoUpdate[]> {
   }
 }
 
-// Données de demo pour quand la DB est vide
-const DEMO_UPDATES: AlgoUpdate[] = [
-  {
-    id: "demo-1",
-    platform: "tiktok",
-    summary: "TikTok favorise désormais les vidéos avec sous-titres automatiques dans le feed FYP, avec une augmentation mesurée de 15% de reach.",
-    impact_level: "high",
-    affected_areas: ["ranking_signals", "content_format"],
-    action_for_creators: "Activez les sous-titres automatiques dans l'app TikTok avant de publier.",
-    source_url: "https://newsroom.tiktok.com",
-    source_title: "New Accessibility Features on TikTok",
-    date_detected: new Date().toISOString().split("T")[0],
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "demo-2",
-    platform: "instagram_reels",
-    summary: "Instagram met davantage en avant les Reels originaux vs republication depuis TikTok (watermark détecté = pénalité reach).",
-    impact_level: "medium",
-    affected_areas: ["ranking_signals", "favored_behaviors"],
-    action_for_creators: "Ne republiez jamais directement depuis TikTok. Exportez sans watermark ou re-filmez.",
-    source_url: "https://creators.instagram.com/blog",
-    source_title: "What Instagram recommends for Reels creators",
-    date_detected: new Date(Date.now() - 86400000 * 3).toISOString().split("T")[0],
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: "demo-3",
-    platform: "youtube_shorts",
-    summary: "YouTube Shorts ajuste son algorithme pour favoriser la complétion (watch-through rate) plutôt que les likes.",
-    impact_level: "medium",
-    affected_areas: ["engagement_signals", "ranking_signals"],
-    action_for_creators: "Créez des hooks plus forts dans les 2 premières secondes pour maximiser la rétention jusqu'à la fin.",
-    source_url: "https://blog.youtube",
-    source_title: "How YouTube Shorts ranking works",
-    date_detected: new Date(Date.now() - 86400000 * 7).toISOString().split("T")[0],
-    created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-  },
-];
-
 interface PageProps {
   searchParams: Promise<{ platform?: string }>;
 }
@@ -125,15 +84,7 @@ export default async function UpdatesPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const selectedPlatform = params.platform ?? "all";
 
-  let updates = await getUpdates(selectedPlatform);
-
-  // Demo mode si DB vide
-  const isDemo = updates.length === 0;
-  if (isDemo) {
-    updates = selectedPlatform === "all"
-      ? DEMO_UPDATES
-      : DEMO_UPDATES.filter((u) => u.platform === selectedPlatform);
-  }
+  const updates = await getUpdates(selectedPlatform);
 
   const platforms = ["all", ...Object.keys(PLATFORM_LABELS)];
 
@@ -148,14 +99,9 @@ export default async function UpdatesPage({ searchParams }: PageProps) {
                 🔍 Veille Algorithmique
               </h1>
               <p className="text-sm text-gray-500 mt-0.5">
-                Mise à jour automatique chaque lundi · {isDemo ? "Mode démo" : `${updates.length} changements détectés`}
+                Mise à jour automatique chaque lundi · {updates.length} changements détectés · sources vérifiées uniquement
               </p>
             </div>
-            {isDemo && (
-              <span className="text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full border border-yellow-200">
-                Données de démonstration
-              </span>
-            )}
           </div>
 
           {/* Filtres plateforme */}
@@ -183,7 +129,7 @@ export default async function UpdatesPage({ searchParams }: PageProps) {
           <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">📭</p>
             <p className="font-medium">Aucun changement détecté</p>
-            <p className="text-sm mt-1">La veille s'exécute chaque lundi</p>
+            <p className="text-sm mt-1">La veille planifiée publiera ici les prochains changements sourcés.</p>
           </div>
         ) : (
           updates.map((update) => (
