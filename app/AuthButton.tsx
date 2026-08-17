@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -8,23 +8,40 @@ const STYLE = {
   inter: { fontFamily: "'Inter', sans-serif" },
 };
 
-export default function AuthButton({ userEmail }: { userEmail: string | null }) {
+export default function AuthButton({ initialUserEmail = null }: { initialUserEmail?: string | null }) {
   const router = useRouter();
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(initialUserEmail);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = useMemo(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    return url && key ? createBrowserClient(url, key) : null;
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!supabase || initialUserEmail) return undefined;
+
+    void supabase.auth.getUser().then(({ data }) => {
+      if (isMounted) setUserEmail(data.user?.email ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initialUserEmail, supabase]);
 
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
+    setUserEmail(null);
     router.push("/login");
     router.refresh();
   };
 
-  if (pathname === "/login" || pathname?.startsWith("/dashboard")) return null;
+  if (pathname === "/login" || pathname === "/lyrics" || pathname?.startsWith("/dashboard")) return null;
 
   if (userEmail) {
     const initials = userEmail.substring(0, 2).toUpperCase();

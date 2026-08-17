@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { createClient } from "@/lib/supabase/server";
 import AuthButton from "./AuthButton";
+
+// L’application lit habituellement une session à la requête ; conserver ce comportement
+// évite de pré-rendre des pages d’authentification configurées dynamiquement.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "AlgoLens — Social Algorithm Intelligence",
@@ -10,13 +13,14 @@ export const metadata: Metadata = {
   keywords: ["algorithme", "social media", "TikTok", "Instagram", "YouTube", "LinkedIn", "stratégie contenu"],
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
 
   return (
     <html lang="fr" className="dark">
@@ -29,7 +33,7 @@ export default async function RootLayout({
         <div style={{
           position: "fixed", top: "16px", right: "20px", zIndex: 100,
         }}>
-          <AuthButton userEmail={user?.email || null} />
+          {hasSupabaseConfig && <AuthButton />}
         </div>
         {children}
       </body>
