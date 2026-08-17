@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import type { AlgorithmData, PlatformId, SocialAlgorithmsDB } from "./types";
+import type { AlgorithmData, KnowledgeBaseMetadata, PlatformId, SocialAlgorithmsDB } from "./types";
 
 let _cache: SocialAlgorithmsDB | null = null;
 
@@ -15,4 +15,8 @@ export function loadAlgorithmsDB(): SocialAlgorithmsDB {
 export function getPlatformData(platformId: PlatformId): AlgorithmData | null {
   const db = loadAlgorithmsDB();
   return db.platforms[platformId] ?? null;
+}
+
+export function getKnowledgeBaseMetadata(): KnowledgeBaseMetadata {
+  return loadAlgorithmsDB()._meta;
 }

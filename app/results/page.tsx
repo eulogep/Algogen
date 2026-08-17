@@ -51,6 +51,12 @@ function getScoreLabel(score: number): string {
   return "Faible alignement";
 }
 
+function getConfidenceStyle(confidence?: string): { label: string; color: string } {
+  if (confidence === "high") return { label: "Confiance élevée", color: "#4ade80" };
+  if (confidence === "medium") return { label: "Confiance modérée", color: "#fbbf24" };
+  return { label: "Confiance limitée", color: "#f87171" };
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function ResultsPage() {
   const router = useRouter();
@@ -123,12 +129,13 @@ export default function ResultsPage() {
   const handlePdf = () => window.print();
 
   const handleCreateExperiment = () => {
-    const recommendedAction = strategy.quick_wins?.[0] ?? strategy.top_5_levers?.[0] ?? "Tester un nouveau format de contenu";
+    const suggestedExperiment = strategy.experiments?.[0];
+    const recommendedAction = suggestedExperiment?.experiment ?? strategy.quick_wins?.[0] ?? strategy.top_5_levers?.[0] ?? "Tester un nouveau format de contenu";
     const params = new URLSearchParams({
       title: `Tester : ${recommendedAction}`.slice(0, 180),
-      hypothesis: `Nous testerons « ${recommendedAction} » pour mesurer son effet sur la performance organique.`,
+      hypothesis: suggestedExperiment?.hypothesis ?? `Nous testerons « ${recommendedAction} » pour mesurer son effet sur la performance organique.`,
       platform: platformId,
-      targetKpi: "Portée / rétention",
+      targetKpi: suggestedExperiment?.primary_metric ?? "Portée / rétention",
     });
     router.push(`/dashboard/experiments?${params.toString()}`);
   };
@@ -213,7 +220,50 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* ── 2. Quick Wins ──────────────────────────────── */}
+          {/* ── 2. Provenance et limites ───────────────────── */}
+          {strategy.analysis_metadata && (() => {
+            const metadata = strategy.analysis_metadata;
+            const confidence = getConfidenceStyle(metadata.confidence);
+            const updatedOn = metadata.knowledge_base?.last_updated
+              ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(new Date(`${metadata.knowledge_base.last_updated}T00:00:00`))
+              : "date inconnue";
+
+            return (
+              <Section delay={0.04} icon="🧭" title="Sources, fraîcheur et limites" color="#38bdf8">
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <span className="badge" style={{ background: `${confidence.color}18`, color: confidence.color, border: `1px solid ${confidence.color}40` }}>
+                      {confidence.label}
+                    </span>
+                    <span style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>
+                      Base {metadata.knowledge_base?.version ?? "non versionnée"} · mise à jour le {updatedOn}
+                    </span>
+                  </div>
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.86rem", lineHeight: 1.65 }}>
+                    Mode d&apos;analyse : {metadata.data_mode === "fallback" ? "plan de continuité local" : "contexte éditorial versionné"}. Cette analyse n&apos;est pas une lecture en temps réel de votre compte ni des systèmes internes de la plateforme.
+                  </p>
+                  <ul style={{ display: "flex", flexDirection: "column", gap: "7px", paddingLeft: "18px", color: "var(--text-muted)", fontSize: "0.84rem", lineHeight: 1.55 }}>
+                    {(metadata.limitations ?? []).map((limitation, index) => <li key={index}>{limitation}</li>)}
+                  </ul>
+                  {metadata.source_urls?.length > 0 && (
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      {metadata.source_urls.map((url) => {
+                        let label = url;
+                        try { label = new URL(url).hostname.replace("www.", ""); } catch { /* URL conservée si invalide */ }
+                        return (
+                          <a key={url} href={url} target="_blank" rel="noreferrer" className="badge" style={{ textDecoration: "none", color: "#7dd3fc", border: "1px solid rgba(56,189,248,0.3)", background: "rgba(56,189,248,0.08)" }}>
+                            Source : {label} ↗
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </Section>
+            );
+          })()}
+
+          {/* ── 3. Quick Wins ──────────────────────────────── */}
           <Section delay={0.05} icon="⚡" title="Quick Wins — Actions à faire dans les 48h" color="#f59e0b">
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {(strategy.quick_wins ?? []).map((win, i) => (
@@ -276,7 +326,26 @@ export default function ResultsPage() {
             </div>
           </Section>
 
-          {/* ── 6. Content Examples ────────────────────────── */}
+          {/* ── 6. Expériences mesurables ──────────────────── */}
+          {(strategy.experiments?.length ?? 0) > 0 && (
+            <Section delay={0.23} icon="🧪" title="Tests recommandés — valider avant de généraliser" color="#2dd4bf">
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {strategy.experiments.map((experiment, index) => (
+                  <div key={`${experiment.experiment}-${index}`} style={{ padding: "16px", borderRadius: "12px", background: "rgba(45,212,191,0.05)", border: "1px solid rgba(45,212,191,0.18)" }}>
+                    <p style={{ fontSize: "0.92rem", fontWeight: 700, marginBottom: "8px", color: "#99f6e4" }}>{index + 1}. {experiment.experiment}</p>
+                    <p style={{ fontSize: "0.86rem", lineHeight: 1.6, color: "var(--text-muted)", marginBottom: "10px" }}>{experiment.hypothesis}</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "8px", fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                      <span><strong style={{ color: "#5eead4" }}>Mesure :</strong> {experiment.primary_metric}</span>
+                      <span><strong style={{ color: "#5eead4" }}>Fenêtre :</strong> {experiment.test_window}</span>
+                    </div>
+                    <p style={{ fontSize: "0.79rem", lineHeight: 1.55, color: "#99f6e4", marginTop: "10px" }}><strong>Décision :</strong> {experiment.decision_rule}</p>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* ── 7. Content Examples ────────────────────────── */}
           <Section delay={0.25} icon="💡" title="Exemples de contenu concrets" color="#a855f7">
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {strategy.content_examples.map((ex, i) => (
@@ -365,6 +434,14 @@ ${strategy.content_examples.map((e, i) => `${i + 1}. ${e}`).join("\n")}
 ⚠️ ERREURS À ÉVITER
 ${strategy.mistakes_to_avoid.map((m, i) => `${i + 1}. ${m}`).join("\n")}
 
-— Généré par AlgoLens v1.0
+🧪 TESTS À VALIDER
+${(strategy.experiments ?? []).map((experiment, i) => `${i + 1}. ${experiment.experiment}\n   Hypothèse : ${experiment.hypothesis}\n   Mesure : ${experiment.primary_metric}\n   Fenêtre : ${experiment.test_window}\n   Décision : ${experiment.decision_rule}`).join("\n\n")}
+
+🧭 PROVENANCE ET LIMITES
+Base : ${strategy.analysis_metadata?.knowledge_base?.title ?? "non disponible"} · v${strategy.analysis_metadata?.knowledge_base?.version ?? "—"} · mise à jour : ${strategy.analysis_metadata?.knowledge_base?.last_updated ?? "—"}
+Confiance : ${strategy.analysis_metadata?.confidence ?? "—"}
+${(strategy.analysis_metadata?.limitations ?? []).map((limitation) => `- ${limitation}`).join("\n")}
+
+— Généré par AlgoLens
 `.trim();
 }

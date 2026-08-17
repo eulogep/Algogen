@@ -53,8 +53,16 @@ export interface AlgorithmData {
   sources: string[];
 }
 
+export interface KnowledgeBaseMetadata {
+  title: string;
+  description: string;
+  version: string;
+  last_updated: string;
+  usage_note: string;
+}
+
 export interface SocialAlgorithmsDB {
-  _meta: Record<string, string>;
+  _meta: KnowledgeBaseMetadata;
   platforms: Record<PlatformId, AlgorithmData>;
 }
 
@@ -105,6 +113,30 @@ export interface WeeklyPlan {
   week4: string;
 }
 
+export type AnalysisDataMode =
+  | "static_editorial_context"
+  | "cache"
+  | "fallback";
+
+export type AnalysisConfidence = "high" | "medium" | "low";
+
+export interface AnalysisMetadata {
+  data_mode: AnalysisDataMode;
+  knowledge_base: KnowledgeBaseMetadata;
+  assessed_at: string;
+  confidence: AnalysisConfidence;
+  source_urls: string[];
+  limitations: string[];
+}
+
+export interface RecommendedExperiment {
+  experiment: string;
+  hypothesis: string;
+  primary_metric: string;
+  test_window: string;
+  decision_rule: string;
+}
+
 export interface AnalyzeResponse {
   algorithm_summary: string;
   potential_score: number;           // 0–100
@@ -114,6 +146,8 @@ export interface AnalyzeResponse {
   weekly_plan: WeeklyPlan;
   content_examples: string[];
   mistakes_to_avoid: string[];
+  experiments: RecommendedExperiment[];
+  analysis_metadata: AnalysisMetadata;
 }
 
 // ── Comparison mode ─────────────────────────────────────────────────────────

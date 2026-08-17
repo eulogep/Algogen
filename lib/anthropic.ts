@@ -1,22 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { AnalyzeResponse, UserProfile } from "./types";
 
 const client = new Anthropic();
 
-interface StrategyResponse {
-  algorithm_summary: string;
-  potential_score: number;
-  score_justification: string;
-  quick_wins: string[];
-  top_5_levers: string[];
-  weekly_plan: {
-    week1: string;
-    week2: string;
-    week3: string;
-    week4: string;
-  };
-  content_examples: string[];
-  mistakes_to_avoid: string[];
-}
+type StrategyResponse = Omit<AnalyzeResponse, "analysis_metadata">;
 
 /**
  * Appelle Claude API avec retry logic + JSON parsing robuste
@@ -168,7 +155,15 @@ export async function* callClaudeWithRetryStream(
 /**
  * Valide que la réponse contient les champs obligatoires
  */
-function validateStrategyResponse(data: any): asserts data is StrategyResponse {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function validateStrategyResponse(data: unknown): asserts data is StrategyResponse {
+  if (!isRecord(data)) {
+    throw new Error("strategy response must be an object");
+  }
+
   const required = [
     "algorithm_summary",
     "potential_score",
@@ -178,6 +173,7 @@ function validateStrategyResponse(data: any): asserts data is StrategyResponse {
     "weekly_plan",
     "content_examples",
     "mistakes_to_avoid",
+    "experiments",
   ];
 
   for (const field of required) {
@@ -187,11 +183,28 @@ function validateStrategyResponse(data: any): asserts data is StrategyResponse {
   }
 
   // Validation supplémentaire
-  if (typeof data.potential_score !== "number") {
-    throw new Error("potential_score must be a number");
+  if (typeof data.potential_score !== "number" || data.potential_score < 0 || data.potential_score > 100) {
+    throw new Error("potential_score must be a number between 0 and 100");
   }
-  if (!Array.isArray(data.quick_wins) || data.quick_wins.length !== 3) {
+  if (!Array.isArray(data.quick_wins) || data.quick_wins.length !== 3 || !data.quick_wins.every((item: unknown) => typeof item === "string")) {
     throw new Error("quick_wins must be an array of exactly 3 strings");
+  }
+  if (!Array.isArray(data.top_5_levers) || !data.top_5_levers.every((item: unknown) => typeof item === "string")) {
+    throw new Error("top_5_levers must be an array of strings");
+  }
+  if (!Array.isArray(data.experiments) || data.experiments.length < 1 || data.experiments.length > 3) {
+    throw new Error("experiments must contain between 1 and 3 items");
+  }
+  for (const experiment of data.experiments) {
+    if (!isRecord(experiment)) {
+      throw new Error("each experiment must be an object");
+    }
+    for (const field of ["experiment", "hypothesis", "primary_metric", "test_window", "decision_rule"]) {
+      const value = experiment[field];
+      if (typeof value !== "string" || !value.trim()) {
+        throw new Error(`experiment.${field} must be a non-empty string`);
+      }
+    }
   }
 }
 
@@ -200,7 +213,7 @@ function validateStrategyResponse(data: any): asserts data is StrategyResponse {
  */
 export function generateFallbackStrategy(
   platformName: string,
-  userProfile: Record<string, any>
+  userProfile: Pick<UserProfile, "currentFrequency">
 ): StrategyResponse {
   return {
     algorithm_summary: `Stratégie générique pour ${platformName} basée sur notre knowledge base (IA indisponible).`,
@@ -242,6 +255,22 @@ export function generateFallbackStrategy(
       "Copier les autres sans adapter à votre niche",
       "Négliger l'optimisation technique (qualité vidéo, sous-titres, etc.)",
       "Changer de stratégie trop souvent sans mesurer les résultats",
+    ],
+    experiments: [
+      {
+        experiment: "Comparer deux hooks sur un même format",
+        hypothesis: "Un hook plus direct améliore la rétention des premières secondes.",
+        primary_metric: "Taux de rétention au début de la vidéo",
+        test_window: "6 publications comparables sur 14 jours",
+        decision_rule: "Conserver le hook gagnant seulement si l'amélioration est observée sur au moins 3 publications comparables.",
+      },
+      {
+        experiment: "Tester deux créneaux de publication",
+        hypothesis: "Le créneau le plus réactif génère davantage de signaux précoces.",
+        primary_metric: "Engagement dans les 60 premières minutes",
+        test_window: "8 publications réparties sur 2 semaines",
+        decision_rule: "Adopter le créneau qui améliore la médiane des interactions précoces, à contenu comparable.",
+      },
     ],
   };
 }

@@ -51,10 +51,12 @@ async function streamHandler(request: NextRequest) {
 
     const platformContext = JSON.stringify(platformData, null, 2);
 
-    const systemPrompt = `Expert algo ${platformData.platform}${platformData.content_type ? ` (${platformData.content_type})` : ''}.
-Analyse ce contexte algorithmique et génère une stratégie d'alignement personnalisée.
+    const systemPrompt = `Tu es un conseiller éditorial pour ${platformData.platform}${platformData.content_type ? ` (${platformData.content_type})` : ''}.
+Analyse ce contexte algorithmique versionné et génère une stratégie d'alignement personnalisée, prudente et testable.
 
-Données algo (source fiable) :
+Important : ce contexte est une base éditoriale, pas une observation en temps réel du compte ni un accès aux signaux internes de la plateforme. Ne prétends jamais connaître des changements non présents dans les données, ni garantir une portée ou un résultat. Utilise un langage conditionnel et propose des hypothèses à tester.
+
+Données de contexte éditorial :
 \`\`\`json
 ${platformContext}
 \`\`\`
@@ -81,7 +83,16 @@ Exemple structure (remplace les valeurs):
     "Exemple 1 (format spécifique + hook accrocheur + angle)",
     "Exemple 2", "Exemple 3", "Exemple 4", "Exemple 5"
   ],
-  "mistakes_to_avoid": ["Erreur critique 1", "Erreur 2", "Erreur 3", "Erreur 4", "Erreur 5"]
+  "mistakes_to_avoid": ["Erreur critique 1", "Erreur 2", "Erreur 3", "Erreur 4", "Erreur 5"],
+  "experiments": [
+    {
+      "experiment": "Nom court du test",
+      "hypothesis": "Hypothèse falsifiable liée à une recommandation",
+      "primary_metric": "Une métrique mesurable",
+      "test_window": "Volume de publications et durée",
+      "decision_rule": "Condition explicite pour conserver, modifier ou abandonner le test"
+    }
+  ]
 }`;
 
     const userMessage = JSON.stringify({
@@ -116,8 +127,9 @@ Exemple structure (remplace les valeurs):
             controller.enqueue(encoder.encode(chunk));
           }
           controller.close();
-        } catch (e: any) {
-          controller.enqueue(encoder.encode(`\n\n[ERROR]: ${e.message}`));
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : "Unknown stream error";
+          controller.enqueue(encoder.encode(`\n\n[ERROR]: ${message}`));
           controller.close();
         }
       }

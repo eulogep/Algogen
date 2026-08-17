@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPlatformData } from "@/lib/algorithms";
+import { getKnowledgeBaseMetadata, getPlatformData } from "@/lib/algorithms";
 import { getSessionUser, getUserPlan, checkAnalysisLimit } from "@/lib/plans";
 import type { AnalyzeRequest, AnalyzeResponse, UserProfile } from "@/lib/types";
 import { callClaudeWithRetry, generateFallbackStrategy } from "@/lib/anthropic";
@@ -7,6 +7,7 @@ import { generateCacheKey, getCache, setCache } from "@/lib/cache";
 import { withRateLimit } from "@/lib/rate-limit";
 import { logAnalytics } from "@/lib/analytics";
 import { createClient } from "@/lib/supabase/server";
+import { buildAnalysisMetadata } from "@/lib/evidence";
 
 async function persistAnalysis(
   userId: string,
@@ -80,26 +81,6 @@ async function analyzeHandler(request: NextRequest) {
     }
     // Note : utilisateurs non connectés peuvent analyser librement (localStorage only)
 
-    const startTime = Date.now();
-    // 1️⃣ VÉRIFIER LE CACHE HYBRIDE (L1 / L2)
-    const cacheKey = generateCacheKey(userProfile, platform);
-    const cachedStrategy = await getCache(cacheKey, platform); // ← await !
-
-    if (cachedStrategy) {
-      logAnalytics({ type: "cache_hit", platform, responseTimeMs: Date.now() - startTime, source: "cache" });
-      if (user) {
-        await persistAnalysis(user.id, platform, userProfile, cachedStrategy);
-      }
-      const responseTime = Date.now() - startTime;
-      
-      return NextResponse.json({
-        ...cachedStrategy,
-        source: "cache",
-        responseTimeMs: responseTime,
-        servedAt: new Date().toISOString(),
-      });
-    }
-
     const platformData = getPlatformData(platform);
     if (!platformData) {
       return NextResponse.json(
@@ -107,13 +88,40 @@ async function analyzeHandler(request: NextRequest) {
         { status: 404 }
       );
     }
+    const knowledgeBase = getKnowledgeBaseMetadata();
+
+    const startTime = Date.now();
+    // 1️⃣ VÉRIFIER LE CACHE HYBRIDE (L1 / L2)
+    const cacheKey = generateCacheKey(userProfile, platform);
+    const cachedStrategy = await getCache(cacheKey, platform); // ← await !
+
+    if (cachedStrategy) {
+      const strategyWithMetadata: AnalyzeResponse = {
+        ...cachedStrategy,
+        analysis_metadata: buildAnalysisMetadata(platformData, knowledgeBase, "cache"),
+      };
+      logAnalytics({ type: "cache_hit", platform, responseTimeMs: Date.now() - startTime, source: "cache" });
+      if (user) {
+        await persistAnalysis(user.id, platform, userProfile, strategyWithMetadata);
+      }
+      const responseTime = Date.now() - startTime;
+      
+      return NextResponse.json({
+        ...strategyWithMetadata,
+        source: "cache",
+        responseTimeMs: responseTime,
+        servedAt: new Date().toISOString(),
+      });
+    }
 
     const platformContext = JSON.stringify(platformData, null, 2);
 
-    const systemPrompt = `Expert algo ${platformData.platform}${platformData.content_type ? ` (${platformData.content_type})` : ''}.
-Analyse ce contexte algorithmique et génère une stratégie d'alignement personnalisée.
+    const systemPrompt = `Tu es un conseiller éditorial pour ${platformData.platform}${platformData.content_type ? ` (${platformData.content_type})` : ''}.
+Analyse ce contexte algorithmique versionné et génère une stratégie d'alignement personnalisée, prudente et testable.
 
-Données algo (source fiable) :
+Important : ce contexte est une base éditoriale, pas une observation en temps réel du compte ni un accès aux signaux internes de la plateforme. Ne prétends jamais connaître des changements non présents dans les données, ni garantir une portée ou un résultat. Utilise un langage conditionnel et propose des hypothèses à tester.
+
+Données de contexte éditorial :
 \`\`\`json
 ${platformContext}
 \`\`\`
@@ -140,7 +148,16 @@ Exemple structure (remplace les valeurs):
     "Exemple 1 (format spécifique + hook accrocheur + angle)",
     "Exemple 2", "Exemple 3", "Exemple 4", "Exemple 5"
   ],
-  "mistakes_to_avoid": ["Erreur critique 1", "Erreur 2", "Erreur 3", "Erreur 4", "Erreur 5"]
+  "mistakes_to_avoid": ["Erreur critique 1", "Erreur 2", "Erreur 3", "Erreur 4", "Erreur 5"],
+  "experiments": [
+    {
+      "experiment": "Nom court du test",
+      "hypothesis": "Hypothèse falsifiable liée à une recommandation",
+      "primary_metric": "Une métrique mesurable",
+      "test_window": "Volume de publications et durée",
+      "decision_rule": "Condition explicite pour conserver, modifier ou abandonner le test"
+    }
+  ]
 }`;
 
     const userMessage = JSON.stringify({
@@ -169,28 +186,36 @@ Exemple structure (remplace les valeurs):
     try {
       strategy = await callClaudeWithRetry(systemPrompt, userMessage) as AnalyzeResponse;
       logAnalytics({ type: "api_success", platform, responseTimeMs: Date.now() - startTime, source: "api" });
-    } catch (apiError: any) {
-      console.error("Claude API failed after retries, using fallback:", apiError.message);
+    } catch (apiError: unknown) {
+      const errorMessage = apiError instanceof Error ? apiError.message : "Unknown model error";
+      console.error("Claude API failed after retries, using fallback:", errorMessage);
       // Utilisation du fallback en cas d'échec total (ex: plus de crédits)
       strategy = generateFallbackStrategy(platformData.platform, userProfile) as AnalyzeResponse;
       strategySource = "fallback";
-      logAnalytics({ type: "api_failed_with_fallback", platform, responseTimeMs: Date.now() - startTime, source: "fallback", errorMessage: apiError.message });
+      logAnalytics({ type: "api_failed_with_fallback", platform, responseTimeMs: Date.now() - startTime, source: "fallback", errorMessage });
     }
 
+    const strategyWithMetadata: AnalyzeResponse = {
+      ...strategy,
+      analysis_metadata: buildAnalysisMetadata(
+        platformData,
+        knowledgeBase,
+        strategySource === "fallback" ? "fallback" : "static_editorial_context"
+      ),
+    };
+
     // 2️⃣ SAUVEGARDER EN CACHE (Hybride L1+L2) APRÈS SUCCÈS
-    if (strategy) {
-      await setCache(cacheKey, platformData.platform, strategy);
-    }
+    await setCache(cacheKey, platformData.platform, strategyWithMetadata);
 
     // 3️⃣ SAUVEGARDER L'HISTORIQUE ET LA STRATÉGIE LIÉS À L'UTILISATEUR
     const currentUser = await getSessionUser();
     if (currentUser && strategySource !== "fallback") {
-      await persistAnalysis(currentUser.id, platform, userProfile, strategy);
+      await persistAnalysis(currentUser.id, platform, userProfile, strategyWithMetadata);
     }
 
     const responseTime = Date.now() - startTime;
     return NextResponse.json({
-      ...strategy,
+      ...strategyWithMetadata,
       source: strategySource,
       responseTimeMs: responseTime,
       servedAt: new Date().toISOString(),
