@@ -6,8 +6,10 @@ export interface AggregateLyricSong {
   language?: string;
   /** Strate optionnelle, par exemple `1990-en-pop`. */
   stratum?: string;
-  /** Étiquette éditoriale facultative. Sans elle, un filtre lexical prudent est utilisé. */
+  /** Étiquette facultative : éditoriale ou exploratoire selon `labelSource`. */
   isLove?: boolean;
+  /** Origine de l’étiquette fournie avec `isLove`. */
+  labelSource?: "editorial" | "exploratory";
   /** Représentation agrégée : lemme/stem -> nombre d'occurrences. */
   counts: Record<string, number>;
 }
@@ -27,6 +29,8 @@ export interface LoveLyricsAnalysisOptions {
   palette_size?: number;
   love_seed_terms?: string[];
   excluded_terms?: string[];
+  /** Applique une validation conservatrice aux positifs de source exploratoire. */
+  validation_mode?: "off" | "auto_for_exploratory";
 }
 
 export interface LoveLyricsAnalysisRequest {
@@ -56,18 +60,26 @@ export interface TermAssociation {
 export interface LyricsAnalysisResult {
   methodology: {
     data_mode: "aggregate_bag_of_words";
-    labeling_method: "editorial_labels" | "heuristic_love_seeds";
+    labeling_method: "editorial_labels" | "heuristic_love_seeds" | "auto_validated_exploratory_labels";
     statistic: string;
     term_cap_per_song: number;
     source: LyricsDatasetMetadata;
   };
   diagnostics: {
+    submitted_documents: number;
     total_documents: number;
     love_documents: number;
     baseline_documents: number;
     vocabulary_size: number;
     effective_love_weight: number;
     effective_baseline_weight: number;
+  };
+  validation: {
+    mode: "not_applied" | "auto_for_exploratory";
+    exploratory_love_candidates: number;
+    retained_exploratory_love_labels: number;
+    rejected_exploratory_love_labels: number;
+    minimum_evidence_families: number;
   };
   love_anchors: string[];
   salient_terms: LexicalTerm[];
@@ -87,8 +99,9 @@ const DEFAULT_OPTIONS: Required<LoveLyricsAnalysisOptions> = {
   min_document_coverage: 0.015,
   palette_size: 12,
   love_seed_terms: DEFAULT_SEEDS,
+  validation_mode: "auto_for_exploratory",
   excluded_terms: [
-    "a", "about", "again", "alright", "also", "am", "an", "and", "are", "as", "at", "be", "been", "but", "by", "can", "caus", "come", "could", "did", "do", "don", "down", "em", "for", "from", "had", "has", "have", "he", "her", "him", "his", "i", "if", "in", "is", "it", "just", "know", "let", "like", "make", "me", "my", "not", "of", "oh", "on", "or", "our", "she", "so", "that", "the", "their", "them", "then", "there", "these", "they", "this", "those", "to", "tell", "was", "we", "were", "what", "when", "who", "will", "with", "would", "you", "your",
+    "a", "about", "again", "alright", "all", "also", "am", "an", "and", "are", "as", "at", "away", "back", "be", "been", "both", "but", "by", "ca", "can", "caus", "come", "could", "crazi", "did", "do", "doe", "don", "down", "em", "even", "ever", "everi", "every", "for", "from", "get", "go", "gonna", "good", "had", "hard", "has", "hate", "have", "he", "help", "her", "here", "him", "his", "how", "i", "if", "in", "is", "it", "just", "know", "let", "like", "littl", "make", "me", "mom", "more", "much", "my", "not", "of", "oh", "on", "one", "only", "onli", "or", "our", "out", "pay", "readi", "right", "say", "she", "so", "some", "someth", "stop", "talk", "thing", "still", "that", "the", "their", "them", "then", "there", "these", "they", "think", "this", "those", "to", "tell", "too", "us", "was", "we", "were", "want", "wanna", "what", "when", "who", "will", "with", "would", "yeah", "you", "your",
     "au", "aux", "ce", "ces", "cet", "cette", "dans", "de", "des", "du", "elle", "en", "est", "et", "il", "je", "la", "le", "les", "leur", "leurs", "ma", "mais", "me", "mes", "mon", "ne", "nos", "notre", "nous", "ou", "par", "pas", "pour", "que", "qui", "sa", "se", "ses", "son", "sur", "ta", "te", "tes", "ton", "tu", "un", "une", "vos", "votre", "vous"
   ],
 };
@@ -99,6 +112,10 @@ type NormalizedSong = {
   isLove: boolean;
   counts: Map<string, number>;
 };
+
+type LabelingMethod = LyricsAnalysisResult["methodology"]["labeling_method"];
+
+type LabelValidationSummary = LyricsAnalysisResult["validation"];
 
 type WeightedCorpus = {
   termFrequency: Map<string, number>;
@@ -133,12 +150,36 @@ function hasLoveSignal(counts: Map<string, number>, seeds: Set<string>): boolean
   return false;
 }
 
+const EXPLORATORY_EVIDENCE_FAMILIES = [
+  new Set(["love", "lov", "lover", "heart", "kiss", "kissing", "babi", "baby", "darling", "amour", "tender"]),
+  new Set(["hold", "togeth", "together", "mine", "need", "feel", "tonight", "memori", "memory", "care"]),
+  new Set(["dream", "desir", "desire", "fall", "forev", "forever", "long", "miss", "sweet", "honey"]),
+];
+const MINIMUM_EXPLORATORY_EVIDENCE_FAMILIES = 2;
+const EXPLORATORY_FOCUS_TERMS = new Set(EXPLORATORY_EVIDENCE_FAMILIES.flatMap((family) => Array.from(family)));
+
+function exploratoryEvidenceFamilyCount(counts: Map<string, number>): number {
+  return EXPLORATORY_EVIDENCE_FAMILIES.reduce(
+    (total, family) => total + (Array.from(family).some((term) => (counts.get(term) ?? 0) > 0) ? 1 : 0),
+    0
+  );
+}
+
 function clipAndNormalizeSongs(
   songs: AggregateLyricSong[],
-  seeds: Set<string>
-): { songs: NormalizedSong[]; labelingMethod: LyricsAnalysisResult["methodology"]["labeling_method"] } {
-  const useEditorialLabels = songs.some((song) => typeof song.isLove === "boolean");
+  seeds: Set<string>,
+  validationMode: Required<LoveLyricsAnalysisOptions>["validation_mode"]
+): { songs: NormalizedSong[]; labelingMethod: LabelingMethod; validation: LabelValidationSummary } {
   const normalizedSongs: NormalizedSong[] = [];
+  const validation: LabelValidationSummary = {
+    mode: "not_applied",
+    exploratory_love_candidates: 0,
+    retained_exploratory_love_labels: 0,
+    rejected_exploratory_love_labels: 0,
+    minimum_evidence_families: MINIMUM_EXPLORATORY_EVIDENCE_FAMILIES,
+  };
+  let hasEditorialLabel = false;
+  let hasUnlabeledSongs = false;
 
   for (const song of songs) {
     if (!song.id?.trim() || !song.counts || typeof song.counts !== "object") continue;
@@ -150,18 +191,40 @@ function clipAndNormalizeSongs(
     }
     if (counts.size === 0) continue;
 
+    const hasProvidedLabel = typeof song.isLove === "boolean";
+    const isEditorialLabel = song.labelSource === "editorial";
+    const isExploratoryPositive = hasProvidedLabel && song.isLove === true && !isEditorialLabel;
+
+    if (isExploratoryPositive && validationMode === "auto_for_exploratory") {
+      validation.mode = "auto_for_exploratory";
+      validation.exploratory_love_candidates += 1;
+      if (exploratoryEvidenceFamilyCount(counts) < MINIMUM_EXPLORATORY_EVIDENCE_FAMILIES) {
+        validation.rejected_exploratory_love_labels += 1;
+        continue;
+      }
+      validation.retained_exploratory_love_labels += 1;
+    }
+
+    if (isEditorialLabel && hasProvidedLabel) hasEditorialLabel = true;
+    if (!hasProvidedLabel) hasUnlabeledSongs = true;
+
     normalizedSongs.push({
       id: song.id.trim(),
       stratum: resolveStratum(song),
-      isLove: useEditorialLabels ? song.isLove === true : hasLoveSignal(counts, seeds),
+      isLove: hasProvidedLabel ? song.isLove === true : hasLoveSignal(counts, seeds),
       counts,
     });
   }
 
-  return {
-    songs: normalizedSongs,
-    labelingMethod: useEditorialLabels ? "editorial_labels" : "heuristic_love_seeds",
-  };
+  const labelingMethod: LabelingMethod = validation.mode === "auto_for_exploratory"
+    ? "auto_validated_exploratory_labels"
+    : hasEditorialLabel
+      ? "editorial_labels"
+      : hasUnlabeledSongs
+        ? "heuristic_love_seeds"
+        : "editorial_labels";
+
+  return { songs: normalizedSongs, labelingMethod, validation };
 }
 
 function corpusWeights(songs: NormalizedSong[]): Map<string, number> {
@@ -277,10 +340,11 @@ export function analyzeLoveLyrics(request: LoveLyricsAnalysisRequest): LyricsAna
     excluded_terms: request.options?.excluded_terms?.length
       ? request.options.excluded_terms
       : DEFAULT_OPTIONS.excluded_terms,
+    validation_mode: request.options?.validation_mode ?? DEFAULT_OPTIONS.validation_mode,
   };
   const seedTerms = new Set(options.love_seed_terms.map(normalizeTerm).filter((term): term is string => Boolean(term)));
   const excludedTerms = new Set(options.excluded_terms.map(normalizeTerm).filter((term): term is string => Boolean(term)));
-  const { songs, labelingMethod } = clipAndNormalizeSongs(request.songs, seedTerms);
+  const { songs, labelingMethod, validation } = clipAndNormalizeSongs(request.songs, seedTerms, options.validation_mode);
   const loveSongs = songs.filter((song) => song.isLove);
   const baselineSongs = songs.filter((song) => !song.isLove);
 
@@ -298,6 +362,7 @@ export function analyzeLoveLyrics(request: LoveLyricsAnalysisRequest): LyricsAna
   const vocabulary = new Set([...loveCorpus.termFrequency.keys(), ...baselineCorpus.termFrequency.keys()]);
   const vocabularySize = vocabulary.size;
   const minimumCoverage = Math.max(1, Math.ceil(loveSongs.length * options.min_document_coverage));
+  const restrictToValidatedFocus = validation.mode === "auto_for_exploratory";
 
   const terms = Array.from(vocabulary)
     .map((term) => {
@@ -326,6 +391,7 @@ export function analyzeLoveLyrics(request: LoveLyricsAnalysisRequest): LyricsAna
       };
     })
     .filter((term) => term.z_score > 0 && term.rawLoveDocuments >= minimumCoverage && !excludedTerms.has(term.term))
+    .filter((term) => !restrictToValidatedFocus || EXPLORATORY_FOCUS_TERMS.has(term.term))
     .sort((left, right) => right.score - left.score || right.love_document_coverage - left.love_document_coverage);
 
   const salientTerms: LexicalTerm[] = terms.slice(0, 40).map((candidate) => ({
@@ -350,6 +416,9 @@ export function analyzeLoveLyrics(request: LoveLyricsAnalysisRequest): LyricsAna
   if (labelingMethod === "heuristic_love_seeds") {
     warnings.unshift("Les chansons d'amour sont repérées par un filtre lexical de départ. Ajoutez des étiquettes éditoriales pour une évaluation thématique plus fiable.");
   }
+  if (validation.mode === "auto_for_exploratory") {
+    warnings.unshift(`Validation exploratoire automatique : ${validation.retained_exploratory_love_labels} candidat(s) retenu(s) et ${validation.rejected_exploratory_love_labels} écarté(s) après contrôle d’au moins ${validation.minimum_evidence_families} familles d’indices ; la palette est limitée aux familles d’indices auditées.`);
+  }
   if (request.dataset.terms_are_stemmed) {
     warnings.push("Les termes proviennent de stems : les formes affichées peuvent être tronquées et ne constituent pas une normalisation linguistique complète.");
   }
@@ -363,6 +432,7 @@ export function analyzeLoveLyrics(request: LoveLyricsAnalysisRequest): LyricsAna
       source: request.dataset,
     },
     diagnostics: {
+      submitted_documents: request.songs.length,
       total_documents: songs.length,
       love_documents: loveSongs.length,
       baseline_documents: baselineSongs.length,
@@ -370,6 +440,7 @@ export function analyzeLoveLyrics(request: LoveLyricsAnalysisRequest): LyricsAna
       effective_love_weight: loveCorpus.effectiveWeight,
       effective_baseline_weight: baselineCorpus.effectiveWeight,
     },
+    validation,
     love_anchors: Array.from(seedTerms).sort(),
     salient_terms: salientTerms,
     optimized_palette: optimizedPalette,

@@ -27,12 +27,20 @@ type AnalysisResponse = {
     source: { name: string; version?: string; source_url?: string; terms_are_stemmed?: boolean };
   };
   diagnostics: {
+    submitted_documents: number;
     total_documents: number;
     love_documents: number;
     baseline_documents: number;
     vocabulary_size: number;
     effective_love_weight: number;
     effective_baseline_weight: number;
+  };
+  validation: {
+    mode: "not_applied" | "auto_for_exploratory";
+    exploratory_love_candidates: number;
+    retained_exploratory_love_labels: number;
+    rejected_exploratory_love_labels: number;
+    minimum_evidence_families: number;
   };
   love_anchors: string[];
   salient_terms: LexicalTerm[];
@@ -153,7 +161,8 @@ export default function LyricsAnalyzerClient() {
             <section style={{ display: "grid", gap: "20px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" }}>
                 {[
-                  ["Documents", analysis.diagnostics.total_documents],
+                  ["Soumis", analysis.diagnostics.submitted_documents],
+                  ["Retenus", analysis.diagnostics.total_documents],
                   ["Amour", analysis.diagnostics.love_documents],
                   ["Témoin", analysis.diagnostics.baseline_documents],
                   ["Vocabulaire", analysis.diagnostics.vocabulary_size],
@@ -186,6 +195,16 @@ export default function LyricsAnalyzerClient() {
                     ))}
                     {analysis.associations.length === 0 && <p style={{ color: "#71717a", fontSize: "0.84rem", margin: 0 }}>Aucune association assez soutenue dans cet échantillon.</p>}
                   </div>
+                </ResultCard>
+
+                <ResultCard title="Validation des labels exploratoires" subtitle="Contrôle automatique conservateur avant l’analyse">
+                  {analysis.validation.mode === "auto_for_exploratory" ? (
+                    <p style={{ color: "#d4d4d8", lineHeight: 1.65, fontSize: "0.84rem", margin: 0 }}>
+                      {analysis.validation.retained_exploratory_love_labels} candidat(s) retenu(s) sur {analysis.validation.exploratory_love_candidates} ; {analysis.validation.rejected_exploratory_love_labels} écarté(s). Chaque candidat retenu présente au moins {analysis.validation.minimum_evidence_families} familles d’indices convergents.
+                    </p>
+                  ) : (
+                    <p style={{ color: "#71717a", lineHeight: 1.65, fontSize: "0.84rem", margin: 0 }}>Aucune validation exploratoire automatique n’a été appliquée à ce corpus.</p>
+                  )}
                 </ResultCard>
               </div>
 

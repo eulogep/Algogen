@@ -57,6 +57,9 @@ function parseSong(value: unknown, index: number): AggregateLyricSong {
     language: typeof value.language === "string" ? value.language : undefined,
     stratum: typeof value.stratum === "string" ? value.stratum : undefined,
     isLove: typeof value.isLove === "boolean" ? value.isLove : undefined,
+    labelSource: value.label_source === "editorial" || value.label_source === "exploratory"
+      ? value.label_source
+      : undefined,
     counts,
   };
 }
@@ -83,6 +86,9 @@ function parseOptions(value: unknown): LoveLyricsAnalysisRequest["options"] {
     excluded_terms: Array.isArray(value.excluded_terms)
       ? value.excluded_terms.filter((term): term is string => typeof term === "string")
       : undefined,
+    validation_mode: (value.validation_mode === "off" || value.validation_mode === "auto_for_exploratory"
+      ? value.validation_mode
+      : undefined) as "off" | "auto_for_exploratory" | undefined,
   };
 
   return Object.values(options).some((option) => option !== undefined) ? options : undefined;
