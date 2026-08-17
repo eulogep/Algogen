@@ -33,6 +33,12 @@ export default function LandingNavbar() {
 
         {/* Action Buttons */}
         <div className="flex items-center space-x-6">
+          <Link
+            href="/lyrics"
+            className="hidden sm:inline text-[13px] text-[#86efac] hover:text-[#fafafa] transition-colors"
+          >
+            Laboratoire lexical
+          </Link>
           <Link 
             href="/login" 
             className="text-[13px] text-[#52525b] hover:text-[#fafafa] transition-colors"

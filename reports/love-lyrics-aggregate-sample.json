@@ -1,0 +1,650 @@
+{
+  "generated_at": "2026-08-17T10:37:13.226Z",
+  "sample_rule": "stableHash(track_id) % 97 < 5",
+  "input_documents": 10710,
+  "result": {
+    "methodology": {
+      "data_mode": "aggregate_bag_of_words",
+      "labeling_method": "heuristic_love_seeds",
+      "statistic": "log-odds régularisé × support documentaire, avec plafonnement des répétitions par chanson et pondération par strate",
+      "term_cap_per_song": 3,
+      "source": {
+        "name": "musiXmatch Dataset — deterministic aggregate sample",
+        "version": "Million Song Dataset companion release",
+        "source_url": "http://millionsongdataset.com/musixmatch/",
+        "licence_note": "Bag-of-words representation only; no complete lyrics are processed or exported.",
+        "terms_are_stemmed": true
+      }
+    },
+    "diagnostics": {
+      "total_documents": 10710,
+      "love_documents": 4680,
+      "baseline_documents": 6030,
+      "vocabulary_size": 4942,
+      "effective_love_weight": 0.9999999999999966,
+      "effective_baseline_weight": 1.0000000000000686
+    },
+    "love_anchors": [
+      "aim",
+      "amour",
+      "baiser",
+      "coeur",
+      "cœur",
+      "darling",
+      "heart",
+      "kiss",
+      "kissing",
+      "lov",
+      "love",
+      "lover",
+      "passion",
+      "romanc",
+      "romance"
+    ],
+    "salient_terms": [
+      {
+        "term": "love",
+        "score": 0.4639480460122025,
+        "z_score": 0.05719966140758844,
+        "love_document_coverage": 0.7115384615384616,
+        "baseline_document_coverage": 0,
+        "love_relative_frequency": 0.011414704697775337,
+        "baseline_relative_frequency": 0,
+        "is_love_anchor": true
+      },
+      {
+        "term": "heart",
+        "score": 0.34432263950777403,
+        "z_score": 0.04557316123114901,
+        "love_document_coverage": 0.4081196581196581,
+        "baseline_document_coverage": 0,
+        "love_relative_frequency": 0.005079331384673394,
+        "baseline_relative_frequency": 0,
+        "is_love_anchor": true
+      },
+      {
+        "term": "kiss",
+        "score": 0.18170029074763236,
+        "z_score": 0.02849428746631679,
+        "love_document_coverage": 0.12542735042735043,
+        "baseline_document_coverage": 0,
+        "love_relative_frequency": 0.0014822280621012193,
+        "baseline_relative_frequency": 0,
+        "is_love_anchor": true
+      },
+      {
+        "term": "babi",
+        "score": 0.1731163818102478,
+        "z_score": 0.024975414553428485,
+        "love_document_coverage": 0.2185897435897436,
+        "baseline_document_coverage": 0.07943615257048092,
+        "love_relative_frequency": 0.003111161159761734,
+        "baseline_relative_frequency": 0.0013310993265880082,
+        "is_love_anchor": false
+      },
+      {
+        "term": "need",
+        "score": 0.13128677962184782,
+        "z_score": 0.018754358147722854,
+        "love_document_coverage": 0.2341880341880342,
+        "baseline_document_coverage": 0.11144278606965174,
+        "love_relative_frequency": 0.002791000482746755,
+        "baseline_relative_frequency": 0.00149112715900974,
+        "is_love_anchor": false
+      },
+      {
+        "term": "girl",
+        "score": 0.11679172703155782,
+        "z_score": 0.017721759017900362,
+        "love_document_coverage": 0.15534188034188035,
+        "baseline_document_coverage": 0.06185737976782753,
+        "love_relative_frequency": 0.0017770941587324372,
+        "baseline_relative_frequency": 0.0007921694099603217,
+        "is_love_anchor": false
+      },
+      {
+        "term": "want",
+        "score": 0.11063585161627733,
+        "z_score": 0.015360413130313812,
+        "love_document_coverage": 0.28675213675213673,
+        "baseline_document_coverage": 0.16235489220563848,
+        "love_relative_frequency": 0.003534470548970664,
+        "baseline_relative_frequency": 0.0023137905856393548,
+        "is_love_anchor": false
+      },
+      {
+        "term": "never",
+        "score": 0.10847615217380374,
+        "z_score": 0.014826137892741838,
+        "love_document_coverage": 0.3213675213675214,
+        "baseline_document_coverage": 0.18855721393034827,
+        "love_relative_frequency": 0.0037966630125667133,
+        "baseline_relative_frequency": 0.0025717329990457972,
+        "is_love_anchor": false
+      },
+      {
+        "term": "night",
+        "score": 0.10802737524764175,
+        "z_score": 0.015427730537721581,
+        "love_document_coverage": 0.23461538461538461,
+        "baseline_document_coverage": 0.12719734660033166,
+        "love_relative_frequency": 0.0025875900789892143,
+        "baseline_relative_frequency": 0.0015404658839798708,
+        "is_love_anchor": false
+      },
+      {
+        "term": "lover",
+        "score": 0.10447644357319007,
+        "z_score": 0.018576834701927742,
+        "love_document_coverage": 0.05897435897435897,
+        "baseline_document_coverage": 0,
+        "love_relative_frequency": 0.0006608243385746018,
+        "baseline_relative_frequency": 0,
+        "is_love_anchor": true
+      },
+      {
+        "term": "hold",
+        "score": 0.1041176847449958,
+        "z_score": 0.015753091706060273,
+        "love_document_coverage": 0.15833333333333333,
+        "baseline_document_coverage": 0.0691542288557214,
+        "love_relative_frequency": 0.001710118979440788,
+        "baseline_relative_frequency": 0.0008411127121721167,
+        "is_love_anchor": false
+      },
+      {
+        "term": "give",
+        "score": 0.1037615986910622,
+        "z_score": 0.015114916171052008,
+        "love_document_coverage": 0.20448717948717948,
+        "baseline_document_coverage": 0.10398009950248756,
+        "love_relative_frequency": 0.002262469059008919,
+        "baseline_relative_frequency": 0.0013014907505119648,
+        "is_love_anchor": false
+      },
+      {
+        "term": "one",
+        "score": 0.10243277879999853,
+        "z_score": 0.013746004071042577,
+        "love_document_coverage": 0.367948717948718,
+        "baseline_document_coverage": 0.23101160862354891,
+        "love_relative_frequency": 0.004280230047691511,
+        "baseline_relative_frequency": 0.0030672523434888362,
+        "is_love_anchor": false
+      },
+      {
+        "term": "now",
+        "score": 0.10107520091119011,
+        "z_score": 0.013468806913173282,
+        "love_document_coverage": 0.38782051282051283,
+        "baseline_document_coverage": 0.25671641791044775,
+        "love_relative_frequency": 0.004767865410255495,
+        "baseline_relative_frequency": 0.0035110302336048183,
+        "is_love_anchor": false
+      },
+      {
+        "term": "feel",
+        "score": 0.09873979741517255,
+        "z_score": 0.013579931435277416,
+        "love_document_coverage": 0.30705128205128207,
+        "baseline_document_coverage": 0.18092868988391375,
+        "love_relative_frequency": 0.0036627391197945653,
+        "baseline_relative_frequency": 0.0025542433911782047,
+        "is_love_anchor": false
+      },
+      {
+        "term": "how",
+        "score": 0.09870065391445805,
+        "z_score": 0.013970845081365563,
+        "love_document_coverage": 0.2497863247863248,
+        "baseline_document_coverage": 0.14162520729684908,
+        "love_relative_frequency": 0.0026301466092372434,
+        "baseline_relative_frequency": 0.0016664246334932038,
+        "is_love_anchor": false
+      },
+      {
+        "term": "say",
+        "score": 0.0978264213863529,
+        "z_score": 0.013447892814320005,
+        "love_document_coverage": 0.30811965811965814,
+        "baseline_document_coverage": 0.18839137645107795,
+        "love_relative_frequency": 0.0035366392114815483,
+        "baseline_relative_frequency": 0.002457418765119771,
+        "is_love_anchor": false
+      },
+      {
+        "term": "ever",
+        "score": 0.09331732007373827,
+        "z_score": 0.014241466272537378,
+        "love_document_coverage": 0.14957264957264957,
+        "baseline_document_coverage": 0.07296849087893864,
+        "love_relative_frequency": 0.0016435789214613219,
+        "baseline_relative_frequency": 0.0008657316974591598,
+        "is_love_anchor": false
+      },
+      {
+        "term": "way",
+        "score": 0.0927079104738724,
+        "z_score": 0.01274426709496432,
+        "love_document_coverage": 0.30811965811965814,
+        "baseline_document_coverage": 0.1859038142620232,
+        "love_relative_frequency": 0.0034495764244360924,
+        "baseline_relative_frequency": 0.0024359425084165094,
+        "is_love_anchor": false
+      },
+      {
+        "term": "ca",
+        "score": 0.09161765703173608,
+        "z_score": 0.012741174347766946,
+        "love_document_coverage": 0.2833333333333333,
+        "baseline_document_coverage": 0.16849087893864012,
+        "love_relative_frequency": 0.0032701511148149572,
+        "baseline_relative_frequency": 0.002283527151248339,
+        "is_love_anchor": false
+      },
+      {
+        "term": "all",
+        "score": 0.09133932553365333,
+        "z_score": 0.011501301508291255,
+        "love_document_coverage": 0.6006410256410256,
+        "baseline_document_coverage": 0.433167495854063,
+        "love_relative_frequency": 0.008355090800682875,
+        "baseline_relative_frequency": 0.0069185846031664805,
+        "is_love_anchor": false
+      },
+      {
+        "term": "true",
+        "score": 0.09083040071932513,
+        "z_score": 0.014717240294746203,
+        "love_document_coverage": 0.10213675213675213,
+        "baseline_document_coverage": 0.035986733001658375,
+        "love_relative_frequency": 0.0010381023395598672,
+        "baseline_relative_frequency": 0.00039349887275570803,
+        "is_love_anchor": false
+      },
+      {
+        "term": "still",
+        "score": 0.08879833889515377,
+        "z_score": 0.013132793498110924,
+        "love_document_coverage": 0.1844017094017094,
+        "baseline_document_coverage": 0.10514096185737977,
+        "love_relative_frequency": 0.0019736812137912288,
+        "baseline_relative_frequency": 0.001183889320902089,
+        "is_love_anchor": false
+      },
+      {
+        "term": "dream",
+        "score": 0.0863624968205131,
+        "z_score": 0.012966222117108276,
+        "love_document_coverage": 0.16666666666666666,
+        "baseline_document_coverage": 0.08109452736318408,
+        "love_relative_frequency": 0.0018379494526143188,
+        "baseline_relative_frequency": 0.0010840588483690828,
+        "is_love_anchor": false
+      },
+      {
+        "term": "mine",
+        "score": 0.08462590246739417,
+        "z_score": 0.01378782433980245,
+        "love_document_coverage": 0.09871794871794871,
+        "baseline_document_coverage": 0.03864013266998342,
+        "love_relative_frequency": 0.0010606564209127633,
+        "baseline_relative_frequency": 0.00044682957968026314,
+        "is_love_anchor": false
+      },
+      {
+        "term": "alway",
+        "score": 0.08210430192496139,
+        "z_score": 0.012445428013130165,
+        "love_document_coverage": 0.1564102564102564,
+        "baseline_document_coverage": 0.08590381426202322,
+        "love_relative_frequency": 0.0017581332060294967,
+        "baseline_relative_frequency": 0.0010475645646012533,
+        "is_love_anchor": false
+      },
+      {
+        "term": "touch",
+        "score": 0.08112503650414292,
+        "z_score": 0.01366308072946171,
+        "love_document_coverage": 0.08076923076923077,
+        "baseline_document_coverage": 0.025538971807628524,
+        "love_relative_frequency": 0.0007835017929695251,
+        "baseline_relative_frequency": 0.00025209865056574496,
+        "is_love_anchor": false
+      },
+      {
+        "term": "yeah",
+        "score": 0.07940271369381222,
+        "z_score": 0.011709488117327424,
+        "love_document_coverage": 0.18803418803418803,
+        "baseline_document_coverage": 0.11160862354892205,
+        "love_relative_frequency": 0.0024541251265225456,
+        "baseline_relative_frequency": 0.0016634697764625437,
+        "is_love_anchor": false
+      },
+      {
+        "term": "take",
+        "score": 0.07939248596499612,
+        "z_score": 0.011004565443091134,
+        "love_document_coverage": 0.2901709401709402,
+        "baseline_document_coverage": 0.18872305140961856,
+        "love_relative_frequency": 0.003233282207754451,
+        "baseline_relative_frequency": 0.0023780939573923455,
+        "is_love_anchor": false
+      },
+      {
+        "term": "cri",
+        "score": 0.07872415698434837,
+        "z_score": 0.012362098456070031,
+        "love_document_coverage": 0.12435897435897436,
+        "baseline_document_coverage": 0.055887230514096185,
+        "love_relative_frequency": 0.0013285310127053105,
+        "baseline_relative_frequency": 0.0007109213235940261,
+        "is_love_anchor": false
+      },
+      {
+        "term": "see",
+        "score": 0.07801998522312169,
+        "z_score": 0.010472369387745699,
+        "love_document_coverage": 0.36730769230769234,
+        "baseline_document_coverage": 0.23847429519071311,
+        "love_relative_frequency": 0.004140154136501029,
+        "baseline_relative_frequency": 0.003217107080843477,
+        "is_love_anchor": false
+      },
+      {
+        "term": "tear",
+        "score": 0.07650974001669583,
+        "z_score": 0.012487575255412851,
+        "love_document_coverage": 0.09764957264957265,
+        "baseline_document_coverage": 0.04228855721393035,
+        "love_relative_frequency": 0.001008063289071236,
+        "baseline_relative_frequency": 0.00045971546697981275,
+        "is_love_anchor": false
+      },
+      {
+        "term": "everi",
+        "score": 0.07641600373069656,
+        "z_score": 0.011506385727359352,
+        "love_document_coverage": 0.16346153846153846,
+        "baseline_document_coverage": 0.08723051409618574,
+        "love_relative_frequency": 0.0016681462730598444,
+        "baseline_relative_frequency": 0.001023586305503089,
+        "is_love_anchor": false
+      },
+      {
+        "term": "much",
+        "score": 0.07412723177692077,
+        "z_score": 0.011546306906244619,
+        "love_document_coverage": 0.130982905982906,
+        "baseline_document_coverage": 0.06417910447761194,
+        "love_relative_frequency": 0.0012531961399895736,
+        "baseline_relative_frequency": 0.0006885811535650502,
+        "is_love_anchor": false
+      },
+      {
+        "term": "find",
+        "score": 0.07342323153483753,
+        "z_score": 0.010906258692156575,
+        "love_document_coverage": 0.17905982905982906,
+        "baseline_document_coverage": 0.10016583747927031,
+        "love_relative_frequency": 0.0018838936661222448,
+        "baseline_relative_frequency": 0.001233438418381794,
+        "is_love_anchor": false
+      },
+      {
+        "term": "day",
+        "score": 0.07316486413393528,
+        "z_score": 0.010281170864413318,
+        "love_document_coverage": 0.26303418803418804,
+        "baseline_document_coverage": 0.16533996683250415,
+        "love_relative_frequency": 0.0029040070322319564,
+        "baseline_relative_frequency": 0.002143396618629067,
+        "is_love_anchor": false
+      },
+      {
+        "term": "time",
+        "score": 0.06945868394635406,
+        "z_score": 0.00925031997417591,
+        "love_document_coverage": 0.38952991452991453,
+        "baseline_document_coverage": 0.2570480928689884,
+        "love_relative_frequency": 0.004522834048533928,
+        "baseline_relative_frequency": 0.0036657377334957837,
+        "is_love_anchor": false
+      },
+      {
+        "term": "go",
+        "score": 0.06630043470620221,
+        "z_score": 0.008961729458245516,
+        "love_document_coverage": 0.3487179487179487,
+        "baseline_document_coverage": 0.24560530679933665,
+        "love_relative_frequency": 0.004204298676765557,
+        "baseline_relative_frequency": 0.003402420471477837,
+        "is_love_anchor": false
+      },
+      {
+        "term": "thing",
+        "score": 0.06510601727671173,
+        "z_score": 0.00935639866775782,
+        "love_document_coverage": 0.22457264957264958,
+        "baseline_document_coverage": 0.14029850746268657,
+        "love_relative_frequency": 0.0023472866032040007,
+        "baseline_relative_frequency": 0.001720200842387806,
+        "is_love_anchor": false
+      },
+      {
+        "term": "more",
+        "score": 0.06425513922857735,
+        "z_score": 0.009383044646172876,
+        "love_document_coverage": 0.20106837606837608,
+        "baseline_document_coverage": 0.1275290215588723,
+        "love_relative_frequency": 0.0021784027562274304,
+        "baseline_relative_frequency": 0.001572015912777235,
+        "is_love_anchor": false
+      }
+    ],
+    "optimized_palette": [
+      {
+        "term": "love",
+        "score": 0.4639480460122025,
+        "z_score": 0.05719966140758844,
+        "love_document_coverage": 0.7115384615384616,
+        "baseline_document_coverage": 0,
+        "love_relative_frequency": 0.011414704697775337,
+        "baseline_relative_frequency": 0,
+        "is_love_anchor": true
+      },
+      {
+        "term": "heart",
+        "score": 0.34432263950777403,
+        "z_score": 0.04557316123114901,
+        "love_document_coverage": 0.4081196581196581,
+        "baseline_document_coverage": 0,
+        "love_relative_frequency": 0.005079331384673394,
+        "baseline_relative_frequency": 0,
+        "is_love_anchor": true
+      },
+      {
+        "term": "kiss",
+        "score": 0.18170029074763236,
+        "z_score": 0.02849428746631679,
+        "love_document_coverage": 0.12542735042735043,
+        "baseline_document_coverage": 0,
+        "love_relative_frequency": 0.0014822280621012193,
+        "baseline_relative_frequency": 0,
+        "is_love_anchor": true
+      },
+      {
+        "term": "babi",
+        "score": 0.1731163818102478,
+        "z_score": 0.024975414553428485,
+        "love_document_coverage": 0.2185897435897436,
+        "baseline_document_coverage": 0.07943615257048092,
+        "love_relative_frequency": 0.003111161159761734,
+        "baseline_relative_frequency": 0.0013310993265880082,
+        "is_love_anchor": false
+      },
+      {
+        "term": "need",
+        "score": 0.13128677962184782,
+        "z_score": 0.018754358147722854,
+        "love_document_coverage": 0.2341880341880342,
+        "baseline_document_coverage": 0.11144278606965174,
+        "love_relative_frequency": 0.002791000482746755,
+        "baseline_relative_frequency": 0.00149112715900974,
+        "is_love_anchor": false
+      },
+      {
+        "term": "girl",
+        "score": 0.11679172703155782,
+        "z_score": 0.017721759017900362,
+        "love_document_coverage": 0.15534188034188035,
+        "baseline_document_coverage": 0.06185737976782753,
+        "love_relative_frequency": 0.0017770941587324372,
+        "baseline_relative_frequency": 0.0007921694099603217,
+        "is_love_anchor": false
+      },
+      {
+        "term": "want",
+        "score": 0.11063585161627733,
+        "z_score": 0.015360413130313812,
+        "love_document_coverage": 0.28675213675213673,
+        "baseline_document_coverage": 0.16235489220563848,
+        "love_relative_frequency": 0.003534470548970664,
+        "baseline_relative_frequency": 0.0023137905856393548,
+        "is_love_anchor": false
+      },
+      {
+        "term": "never",
+        "score": 0.10847615217380374,
+        "z_score": 0.014826137892741838,
+        "love_document_coverage": 0.3213675213675214,
+        "baseline_document_coverage": 0.18855721393034827,
+        "love_relative_frequency": 0.0037966630125667133,
+        "baseline_relative_frequency": 0.0025717329990457972,
+        "is_love_anchor": false
+      },
+      {
+        "term": "night",
+        "score": 0.10802737524764175,
+        "z_score": 0.015427730537721581,
+        "love_document_coverage": 0.23461538461538461,
+        "baseline_document_coverage": 0.12719734660033166,
+        "love_relative_frequency": 0.0025875900789892143,
+        "baseline_relative_frequency": 0.0015404658839798708,
+        "is_love_anchor": false
+      },
+      {
+        "term": "lover",
+        "score": 0.10447644357319007,
+        "z_score": 0.018576834701927742,
+        "love_document_coverage": 0.05897435897435897,
+        "baseline_document_coverage": 0,
+        "love_relative_frequency": 0.0006608243385746018,
+        "baseline_relative_frequency": 0,
+        "is_love_anchor": true
+      },
+      {
+        "term": "hold",
+        "score": 0.1041176847449958,
+        "z_score": 0.015753091706060273,
+        "love_document_coverage": 0.15833333333333333,
+        "baseline_document_coverage": 0.0691542288557214,
+        "love_relative_frequency": 0.001710118979440788,
+        "baseline_relative_frequency": 0.0008411127121721167,
+        "is_love_anchor": false
+      },
+      {
+        "term": "give",
+        "score": 0.1037615986910622,
+        "z_score": 0.015114916171052008,
+        "love_document_coverage": 0.20448717948717948,
+        "baseline_document_coverage": 0.10398009950248756,
+        "love_relative_frequency": 0.002262469059008919,
+        "baseline_relative_frequency": 0.0013014907505119648,
+        "is_love_anchor": false
+      }
+    ],
+    "associations": [
+      {
+        "left": "babi",
+        "right": "girl",
+        "pmi": 0.6420591628014162,
+        "love_document_count": 302
+      },
+      {
+        "left": "dream",
+        "right": "true",
+        "pmi": 0.4896831871921814,
+        "love_document_count": 130
+      },
+      {
+        "left": "give",
+        "right": "need",
+        "pmi": 0.4226382670133825,
+        "love_document_count": 342
+      },
+      {
+        "left": "ever",
+        "right": "never",
+        "pmi": 0.4218199965244425,
+        "love_document_count": 343
+      },
+      {
+        "left": "babi",
+        "right": "need",
+        "pmi": 0.4182900230888458,
+        "love_document_count": 364
+      },
+      {
+        "left": "hold",
+        "right": "kiss",
+        "pmi": 0.4025018769182009,
+        "love_document_count": 139
+      },
+      {
+        "left": "girl",
+        "right": "lover",
+        "pmi": 0.38486077205255576,
+        "love_document_count": 63
+      },
+      {
+        "left": "need",
+        "right": "want",
+        "pmi": 0.37439799476630914,
+        "love_document_count": 457
+      },
+      {
+        "left": "babi",
+        "right": "lover",
+        "pmi": 0.3660658758974996,
+        "love_document_count": 87
+      },
+      {
+        "left": "babi",
+        "right": "want",
+        "pmi": 0.35889701670585283,
+        "love_document_count": 420
+      },
+      {
+        "left": "hold",
+        "right": "true",
+        "pmi": 0.3462708655860558,
+        "love_document_count": 107
+      },
+      {
+        "left": "girl",
+        "right": "need",
+        "pmi": 0.3391679958017229,
+        "love_document_count": 239
+      }
+    ],
+    "warnings": [
+      "Les chansons d'amour sont repérées par un filtre lexical de départ. Ajoutez des étiquettes éditoriales pour une évaluation thématique plus fiable.",
+      "Résultat fondé sur des comptes de mots agrégés : il ne contient pas de phrases, n-grammes ou paroles complètes.",
+      "Les associations indiquent une cooccurrence au niveau chanson, pas une expression littérale ni un ordre de mots.",
+      "La palette est une aide d'analyse ; elle ne doit pas être utilisée pour imiter, compléter ou reconstituer une chanson existante.",
+      "Les termes proviennent de stems : les formes affichées peuvent être tronquées et ne constituent pas une normalisation linguistique complète."
+    ]
+  }
+}

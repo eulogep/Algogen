@@ -55,3 +55,4 @@ fix-envs.js
 app/test-root/
 scripts/test-*
 !supabase/migrations/
+/.cache/
