@@ -61,6 +61,33 @@ function parseSong(value: unknown, index: number): AggregateLyricSong {
   };
 }
 
+function parseOptions(value: unknown): LoveLyricsAnalysisRequest["options"] {
+  if (!isRecord(value)) return undefined;
+
+  const options = {
+    max_term_occurrences_per_song: typeof value.max_term_occurrences_per_song === "number"
+      ? value.max_term_occurrences_per_song
+      : undefined,
+    min_love_documents: typeof value.min_love_documents === "number"
+      ? value.min_love_documents
+      : undefined,
+    min_document_coverage: typeof value.min_document_coverage === "number"
+      ? value.min_document_coverage
+      : undefined,
+    palette_size: typeof value.palette_size === "number"
+      ? value.palette_size
+      : undefined,
+    love_seed_terms: Array.isArray(value.love_seed_terms)
+      ? value.love_seed_terms.filter((term): term is string => typeof term === "string")
+      : undefined,
+    excluded_terms: Array.isArray(value.excluded_terms)
+      ? value.excluded_terms.filter((term): term is string => typeof term === "string")
+      : undefined,
+  };
+
+  return Object.values(options).some((option) => option !== undefined) ? options : undefined;
+}
+
 function parseRequest(value: unknown): LoveLyricsAnalysisRequest {
   if (!isRecord(value) || !Array.isArray(value.songs)) {
     throw new Error("dataset and songs are required");
@@ -72,28 +99,7 @@ function parseRequest(value: unknown): LoveLyricsAnalysisRequest {
   return {
     dataset: parseDataset(value.dataset),
     songs: value.songs.map(parseSong),
-    options: isRecord(value.options)
-      ? {
-          max_term_occurrences_per_song: typeof value.options.max_term_occurrences_per_song === "number"
-            ? value.options.max_term_occurrences_per_song
-            : undefined,
-          min_love_documents: typeof value.options.min_love_documents === "number"
-            ? value.options.min_love_documents
-            : undefined,
-          min_document_coverage: typeof value.options.min_document_coverage === "number"
-            ? value.options.min_document_coverage
-            : undefined,
-          palette_size: typeof value.options.palette_size === "number"
-            ? value.options.palette_size
-            : undefined,
-          love_seed_terms: Array.isArray(value.options.love_seed_terms)
-            ? value.options.love_seed_terms.filter((term): term is string => typeof term === "string")
-            : undefined,
-          excluded_terms: Array.isArray(value.options.excluded_terms)
-            ? value.options.excluded_terms.filter((term): term is string => typeof term === "string")
-            : undefined,
-        }
-      : undefined,
+    options: parseOptions(value.options),
   };
 }
 
