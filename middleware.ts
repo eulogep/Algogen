@@ -2,6 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Le laboratoire lexical est un outil public, sans compte ni persistance.
+  // Il ne doit pas dépendre de l'initialisation Supabase pour être consultable.
+  if (pathname === "/lyrics" || pathname.startsWith("/api/lyrics/")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -29,11 +37,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
-  const publicPaths = ["/", "/login", "/auth/callback", "/pricing", "/updates"];
-  const isPublic = publicPaths.includes(pathname);
-  
   // Routes protégées par défaut (dashboard, analyze, results, history, compare)
   const isProtected = pathname.startsWith("/dashboard") || 
                       pathname.startsWith("/analyze") || 
