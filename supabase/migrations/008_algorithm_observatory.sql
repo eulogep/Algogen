@@ -1,5 +1,45 @@
 -- supabase/migrations/008_algorithm_observatory.sql
 -- Algorithm Observatory : preuves explicites, confiance et tendances multi-sources.
+-- Réconcilie également la première table historique utilisée en production,
+-- dont les colonnes étaient title/impact/detected_at au lieu du schéma versionné.
+
+alter table algorithm_updates
+  add column if not exists summary text not null default '',
+  add column if not exists impact_level text not null default 'medium'
+    check (impact_level in ('low', 'medium', 'high')),
+  add column if not exists affected_areas text[] not null default '{}',
+  add column if not exists action_for_creators text not null default '',
+  add column if not exists source_title text not null default '',
+  add column if not exists date_detected date not null default current_date;
+
+-- Backfill non destructif lorsque les anciennes colonnes sont présentes.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'algorithm_updates' and column_name = 'title'
+  ) then
+    execute 'update algorithm_updates set summary = coalesce(nullif(summary, ''''), title, ''''), source_title = coalesce(nullif(source_title, ''''), title, '''') where summary = '''' or source_title = ''''';
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'algorithm_updates' and column_name = 'impact'
+  ) then
+    execute 'update algorithm_updates set impact_level = case when impact in (''low'', ''medium'', ''high'') then impact else impact_level end';
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'algorithm_updates' and column_name = 'detected_at'
+  ) then
+    execute 'update algorithm_updates set date_detected = coalesce(date_detected, detected_at::date)';
+  end if;
+end $$;
+
+create index if not exists idx_algo_updates_platform on algorithm_updates(platform);
+create index if not exists idx_algo_updates_date on algorithm_updates(date_detected desc);
+create index if not exists idx_algo_updates_impact on algorithm_updates(impact_level);
 
 alter table algorithm_updates
   add column if not exists signal_confidence smallint not null default 0
