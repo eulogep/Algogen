@@ -12,7 +12,7 @@
     },
     {
       "path": "/api/cron/cache-snapshot",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "functions": {

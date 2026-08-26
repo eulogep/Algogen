@@ -157,7 +157,7 @@ Connexion sans mot de passe via magic link. Chaque utilisateur dispose de son hi
 - Design dark inspiré Vercel Analytics + Linear
 - Inter 300 + JetBrains Mono
 - Chart.js : courbes L1/L2/misses sur 24h
-- Snapshots toutes les 30min en DB
+- Snapshot quotidien en DB (compatible avec le plan Vercel Hobby)
 - Export CSV intégré
 
 </td>
@@ -312,7 +312,7 @@ algolens/
 │       ├── stripe/route.ts               # Webhook Stripe
 │       └── cron/
 │           ├── weekly-scrape/route.ts    # Veille algo (lundi 8h)
-│           └── cache-snapshot/route.ts   # Snapshot stats (toutes 30min)
+│           └── cache-snapshot/route.ts   # Snapshot stats (quotidien)
 ├── lib/
 │   ├── anthropic.ts                      # SDK Claude + retry + fallback
 │   ├── cache.ts                          # Cache hybride L1/L2
