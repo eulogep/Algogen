@@ -17,12 +17,12 @@ export default function LandingNavbar() {
   return (
     <nav 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? "bg-[#09090b]/80 backdrop-blur-md border-b border-[#18181b] py-3" 
-          : "bg-transparent py-5"
+        isScrolled
+          ? "border-b border-[#18181b] bg-[#09090b]/90 py-3 backdrop-blur-md"
+          : "bg-transparent py-3 sm:py-4"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-10 flex justify-between items-center">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2.5 group">
           <div className="w-[28px] h-[28px] bg-[#22c55e] rounded-[7px] flex items-center justify-center transition-transform group-hover:scale-105">
@@ -32,22 +32,22 @@ export default function LandingNavbar() {
         </Link>
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center gap-3 sm:gap-5">
           <Link
             href="/lyrics"
-            className="hidden sm:inline text-[13px] text-[#86efac] hover:text-[#fafafa] transition-colors"
+            className="hidden md:inline text-[13px] text-[#86efac] transition-colors hover:text-[#fafafa]"
           >
             Laboratoire lexical
           </Link>
           <Link 
             href="/login" 
-            className="text-[13px] text-[#52525b] hover:text-[#fafafa] transition-colors"
+            className="hidden text-[13px] text-[#a1a1aa] transition-colors hover:text-[#fafafa] sm:inline"
           >
             Se connecter
           </Link>
           <Link 
             href="/login" 
-            className="bg-[#22c55e] text-[#09090b] text-[13px] font-medium px-4 py-[7px] rounded-[7px] hover:bg-[#22c55e]/90 transition-all active:scale-95"
+            className="rounded-[7px] bg-[#22c55e] px-3.5 py-2 text-[13px] font-medium text-[#09090b] transition-all hover:bg-[#22c55e]/90 active:scale-95 sm:px-4"
           >
             Commencer →
           </Link>

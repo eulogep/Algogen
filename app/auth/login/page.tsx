@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,17 +12,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (searchParams.get("error") === "auth_callback_failed") {
-      setError("Le lien de connexion a expiré. Essaie à nouveau.");
-    }
-    if (searchParams.get("confirmed") === "1") {
-      setMessage("Email confirmé ! Tu peux maintenant te connecter.");
-    }
-  }, [searchParams]);
+  const [error, setError] = useState<string | null>(() =>
+    searchParams.get("error") === "auth_callback_failed"
+      ? "Le lien de connexion a expiré. Essaie à nouveau."
+      : null
+  );
+  const [message] = useState<string | null>(() =>
+    searchParams.get("confirmed") === "1"
+      ? "Email confirmé ! Tu peux maintenant te connecter."
+      : null
+  );
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

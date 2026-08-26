@@ -5,7 +5,7 @@ export function useAnalyzeStream() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function analyze(userProfile: any, platformName: string) {
+  async function analyze(userProfile: unknown, platformName: string) {
     setIsLoading(true);
     setResponse("");
     setError(null);
@@ -34,9 +34,9 @@ export function useAnalyzeStream() {
         const text = decoder.decode(value);
         setResponse((prev) => prev + text);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Stream failed", err);
-      setError(err.message || "Impossible de joindre le flux");
+      setError(err instanceof Error ? err.message : "Impossible de joindre le flux");
     } finally {
       setIsLoading(false);
     }

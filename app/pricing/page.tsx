@@ -39,7 +39,17 @@ export default function PricingPage() {
   const [error, setError] = useState<string | null>(null);
   const [studentEmail, setStudentEmail] = useState("");
   const [showStudentInput, setShowStudentInput] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(() => {
+    if (searchParams.get("success") === "1") {
+      return searchParams.get("plan") === "student"
+        ? "🎓 Bienvenue ! Ton accès étudiant est activé pour 2 mois."
+        : "🚀 Bienvenue sur AlgoLens Pro ! Toutes les fonctionnalités sont débloquées.";
+    }
+
+    return searchParams.get("canceled") === "1"
+      ? "Paiement annulé. Tu peux réessayer quand tu veux."
+      : null;
+  });
 
   useEffect(() => {
     const supabase = createClient();
@@ -55,15 +65,6 @@ export default function PricingPage() {
       }
     });
 
-    if (searchParams.get("success") === "1") {
-      const plan = searchParams.get("plan");
-      setToast(plan === "student"
-        ? "🎓 Bienvenue ! Ton accès étudiant est activé pour 2 mois."
-        : "🚀 Bienvenue sur AlgoLens Pro ! Toutes les fonctionnalités sont débloquées.");
-    }
-    if (searchParams.get("canceled") === "1") {
-      setToast("Paiement annulé. Tu peux réessayer quand tu veux.");
-    }
   }, [searchParams]);
 
   const handleCheckout = async (plan: "pro" | "student") => {
@@ -265,7 +266,7 @@ export default function PricingPage() {
 
         {/* Note legal */}
         <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.75rem", marginTop: "32px", lineHeight: 1.6 }}>
-          Paiements sécurisés par Stripe · L'offre étudiante est limitée à 1 utilisation par compte · Annulation Pro à tout moment depuis le portail
+          Paiements sécurisés par Stripe · L&apos;offre étudiante est limitée à 1 utilisation par compte · Annulation Pro à tout moment depuis le portail
         </p>
       </div>
     </main>

@@ -41,7 +41,7 @@ export default function AuthButton({ initialUserEmail = null }: { initialUserEma
     router.refresh();
   };
 
-  if (pathname === "/login" || pathname === "/lyrics" || pathname?.startsWith("/dashboard")) return null;
+  if (pathname === "/" || pathname === "/login" || pathname === "/lyrics" || pathname?.startsWith("/dashboard")) return null;
 
   if (userEmail) {
     const initials = userEmail.substring(0, 2).toUpperCase();

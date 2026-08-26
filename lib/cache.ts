@@ -19,13 +19,21 @@ export interface CacheStats {
   l2HitRate: number; // %
 }
 
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValue | undefined }
+  | JsonValue[];
+
 // --- Configuration L1 ---
 const TTL_MS = 60 * 60 * 1000; // 1 heure
 const MAX_L1_SIZE = 500;
 const l1Cache = new Map<string, CacheEntry>();
 
 // --- Variables Statistiques ---
-let stats: CacheStats = {
+const stats: CacheStats = {
   l1Hits: 0,
   l2Hits: 0,
   misses: 0,
@@ -57,13 +65,14 @@ function cleanupL1() {
 /**
  * Génère une clé de cache SHA256 unique basée sur le profil et la plateforme
  */
-export function generateCacheKey(userProfile: Record<string, any>, platformName: string): string {
+export function generateCacheKey<T extends object>(userProfile: T, platformName: string): string {
+  const profile = userProfile as Record<string, unknown>;
   const dataToHash = JSON.stringify({
-    niche: userProfile.niche,
-    contentType: userProfile.contentType,
-    targetAudience: userProfile.targetAudience,
-    objective: userProfile.objective,
-    level: userProfile.level,
+    niche: profile.niche,
+    contentType: profile.contentType,
+    targetAudience: profile.targetAudience,
+    objective: profile.objective,
+    level: profile.level,
     platform: platformName
   });
 
@@ -145,7 +154,7 @@ export async function setCache(key: string, platformName: string, strategy: Stra
     supabase.from('strategy_cache').upsert({
       platform: platformName,
       profile_hash: key,
-      strategy: strategy as any,
+      strategy: strategy as unknown as JsonValue,
     }, { onConflict: 'platform, profile_hash' })
     .then(({ error }) => {
       if (error) {
