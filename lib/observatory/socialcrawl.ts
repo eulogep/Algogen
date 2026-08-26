@@ -10,11 +10,15 @@ const REQUEST_TIMEOUT_MS = 20_000;
 
 type SocialCrawlSource = "youtube" | "tiktok" | "instagram";
 
+type UnknownRecord = Record<string, unknown>;
+
 interface SocialCrawlPost {
   id?: unknown;
   url?: unknown;
+  title?: unknown;
   content?: {
     text?: unknown;
+    title?: unknown;
   };
   author?: {
     username?: unknown;
@@ -29,7 +33,12 @@ interface SocialCrawlPost {
   published_at?: unknown;
   ext?: {
     title?: unknown;
+    description?: unknown;
   };
+}
+
+interface SocialCrawlComputed {
+  engagement_rate?: unknown;
 }
 
 interface SocialCrawlEnvelope {
@@ -70,6 +79,10 @@ const SOURCE_DEFINITIONS: Record<SocialCrawlSource, SourceDefinition> = {
   },
 };
 
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
@@ -78,6 +91,13 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value >= 0
     ? value
     : undefined;
+}
+
+function asPercent(value: unknown): number | undefined {
+  const numeric = asNumber(value);
+  if (numeric === undefined) return undefined;
+  // SocialCrawl renvoie engagement_rate comme ratio (0.14949 = 14.949 %).
+  return numeric <= 1 ? numeric * 100 : numeric;
 }
 
 function parseSources(value: string | undefined): SocialCrawlSource[] {
@@ -90,12 +110,24 @@ function parseSources(value: string | undefined): SocialCrawlSource[] {
   return [...new Set(selected)];
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+/**
+ * Les listes SocialCrawl suivent le contrat unifié : data.items[] contient
+ * { post: {...}, computed: {...} }. Le repli plat conserve la compatibilité
+ * avec d’anciens adaptateurs et réponses déjà normalisées.
+ */
+function unwrapSocialCrawlItem(
+  value: unknown
+): { post: SocialCrawlPost; computed?: SocialCrawlComputed } | null {
+  if (!isRecord(value)) return null;
 
-function isSocialCrawlPost(value: unknown): value is SocialCrawlPost {
-  return isRecord(value);
+  if (isRecord(value.post)) {
+    return {
+      post: value.post as SocialCrawlPost,
+      computed: isRecord(value.computed) ? (value.computed as SocialCrawlComputed) : undefined,
+    };
+  }
+
+  return { post: value as SocialCrawlPost };
 }
 
 function safePublishedAt(value: unknown, fallback: string): string {
@@ -107,14 +139,23 @@ function safePublishedAt(value: unknown, fallback: string): string {
   return fallback;
 }
 
+function titleFromPost(post: SocialCrawlPost): string | undefined {
+  return (
+    asString(post.title) ??
+    asString(post.content?.title) ??
+    asString(post.ext?.title) ??
+    asString(post.content?.text) ??
+    asString(post.ext?.description)
+  );
+}
+
 function topicFromPost(post: SocialCrawlPost, fallback: string): string {
-  const title = asString(post.ext?.title);
-  const text = asString(post.content?.text);
-  return (title ?? text ?? fallback).slice(0, 240);
+  return (titleFromPost(post) ?? fallback).slice(0, 240);
 }
 
 function toSocialSignal(
   post: SocialCrawlPost,
+  computed: SocialCrawlComputed | undefined,
   definition: SourceDefinition,
   index: number,
   now: Date
@@ -122,7 +163,7 @@ function toSocialSignal(
   const fallbackUrl = `https://www.socialcrawl.dev/evidence/${definition.source}/${index}`;
   const id = asString(post.id) ?? `${definition.source}:${index}:${now.getTime()}`;
   const url = asString(post.url) ?? fallbackUrl;
-  const title = asString(post.ext?.title);
+  const title = titleFromPost(post);
   const publishedAt = safePublishedAt(post.published_at, now.toISOString());
 
   return {
@@ -139,6 +180,7 @@ function toSocialSignal(
       likes: asNumber(post.engagement?.likes),
       comments: asNumber(post.engagement?.comments),
       shares: asNumber(post.engagement?.shares),
+      engagementRate: asPercent(computed?.engagement_rate),
     },
     author: asString(post.author?.username)
       ? {
@@ -146,7 +188,7 @@ function toSocialSignal(
           followers: asNumber(post.author?.followers),
         }
       : undefined,
-    evidence: title ?? asString(post.content?.text),
+    evidence: title ?? asString(post.content?.text) ?? asString(post.ext?.description),
   };
 }
 
@@ -176,11 +218,11 @@ async function fetchSource(
     throw new Error(`SocialCrawl ${definition.source}: ${errorType} — ${errorMessage}`);
   }
 
-  const items = Array.isArray(body.data?.items)
-    ? body.data.items.filter(isSocialCrawlPost)
-    : [];
-
-  return items.map((post, index) => toSocialSignal(post, definition, index, context.now));
+  const items = Array.isArray(body.data?.items) ? body.data.items : [];
+  return items
+    .map(unwrapSocialCrawlItem)
+    .filter((item): item is { post: SocialCrawlPost; computed?: SocialCrawlComputed } => item !== null)
+    .map((item, index) => toSocialSignal(item.post, item.computed, definition, index, context.now));
 }
 
 /**

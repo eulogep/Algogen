@@ -89,7 +89,9 @@ async function getUpdates(platform?: string): Promise<AlgoUpdate[]> {
     const supabase = await createSSRClient();
     let query = supabase
       .from("algorithm_updates")
-      .select("*")
+      .select(
+        "id, platform, summary, impact_level, affected_areas, affected_formats, action_for_creators, source_url, source_title, source_type, signal_confidence, evidence_count, date_detected"
+      )
       .order("date_detected", { ascending: false })
       .limit(50);
 
@@ -114,7 +116,9 @@ async function getTrends(): Promise<TrendObservation[]> {
     const supabase = await createSSRClient();
     const { data, error } = await supabase
       .from("trend_observations")
-      .select("*")
+      .select(
+        "id, topic, platforms, source_types, velocity, acceleration, engagement, novelty, cross_platform_spread, trend_score, confidence, evidence_count, detected_at"
+      )
       .order("trend_score", { ascending: false })
       .order("detected_at", { ascending: false })
       .limit(6);
