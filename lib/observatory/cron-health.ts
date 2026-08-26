@@ -28,6 +28,43 @@ function isFailure(status: CronHealthStatus): boolean {
   return status === "failure";
 }
 
+/** PostgreSQL jsonb rejette les surrogates UTF-16 non appariés. */
+function sanitizeUnicode(value: string): string {
+  let output = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        output += value[index] + value[index + 1];
+        index += 1;
+      } else {
+        output += "�";
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      output += "�";
+    } else {
+      output += value[index];
+    }
+  }
+  return output;
+}
+
+function toJsonSafe(value: unknown): unknown {
+  if (typeof value === "string") return sanitizeUnicode(value);
+  if (typeof value === "number" || typeof value === "boolean" || value === null) return value;
+  if (Array.isArray(value)) return value.map(toJsonSafe);
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        sanitizeUnicode(key),
+        toJsonSafe(entry),
+      ])
+    );
+  }
+  return value === undefined ? null : sanitizeUnicode(String(value));
+}
+
 export async function recordCronHealth(input: CronHealthInput): Promise<CronHealthResult> {
   const supabase = createServiceClient();
   const { data: latest, error: latestError } = await supabase
@@ -61,7 +98,7 @@ export async function recordCronHealth(input: CronHealthInput): Promise<CronHeal
     started_at: input.startedAt.toISOString(),
     finished_at: new Date().toISOString(),
     status: input.status,
-    failure_reason: input.failureReason,
+    failure_reason: input.failureReason ? sanitizeUnicode(input.failureReason) : null,
     articles_scraped: input.articlesScraped,
     analyzer_attempted: input.analyzerAttempted,
     analyzer_failed: input.analyzerFailed,
@@ -69,7 +106,7 @@ export async function recordCronHealth(input: CronHealthInput): Promise<CronHeal
     trends_detected: input.trendsDetected,
     updates_detected: input.updatesDetected,
     alert_kind: alertKind ?? null,
-    metadata: input.metadata ?? {},
+    metadata: toJsonSafe(input.metadata ?? {}),
   });
 
   if (insertError) throw insertError;
