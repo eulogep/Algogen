@@ -16,7 +16,7 @@ export default function LandingNavbar() {
 
   return (
     <nav 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`sticky top-0 z-50 transition-all duration-300 ${
         isScrolled
           ? "border-b border-[#18181b] bg-[#09090b]/90 py-3 backdrop-blur-md"
           : "bg-transparent py-3 sm:py-4"
