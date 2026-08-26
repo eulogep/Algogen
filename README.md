@@ -11,6 +11,8 @@
 <a href="#"><img src="https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white"/></a>
 <a href="#"><img src="https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel&logoColor=white"/></a>
 <a href="#"><img src="https://img.shields.io/badge/Stripe-Payments-635BFF?style=for-the-badge&logo=stripe&logoColor=white"/></a>
+<a href="https://github.com/eulogep/Algogen/actions/workflows/ci.yml"><img src="https://github.com/eulogep/Algogen/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI status"/></a>
+<a href="https://github.com/eulogep/Algogen/blob/master/LICENSE"><img src="https://img.shields.io/github/license/eulogep/Algogen?style=for-the-badge&label=License" alt="Apache-2.0 license"/></a>
 
 <br/><br/>
 
