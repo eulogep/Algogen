@@ -204,6 +204,24 @@ Connexion sans mot de passe via magic link. Chaque utilisateur dispose de son hi
 
 ---
 
+## État de production vérifié
+
+L’Algorithm Observatory est déployé sur [l’instance de production](https://algolens-five.vercel.app). Le schéma historique d’`algorithm_updates` a été réconcilié avant l’application de la migration `008_algorithm_observatory.sql`, sans supprimer de données existantes.
+
+| Contrôle | Résultat vérifié |
+|---|---|
+| Exécution de production | Le cron `/api/cron/weekly-scrape` a terminé avec un statut **HTTP 200**. |
+| Observations persistées | **53** lignes ont été enregistrées dans `trend_observations` lors du test de mise en service. |
+| Répartition des preuves | **28** observations proviennent des newsrooms officielles ; **25** proviennent du flux SocialCrawl YouTube (`trend_feed`). |
+| Cohérence des preuves | Pour les 53 lignes contrôlées, `evidence_count` est cohérent avec la taille du tableau JSON `evidence`. |
+| Planification active | La veille est exécutée le lundi à 08:00 UTC ; le snapshot de cache est quotidien pour rester compatible avec Vercel Hobby. |
+
+> La première collecte SocialCrawl a validé l’accès, la normalisation et la persistance. Les 25 résultats YouTube de ce premier jeu de données n’exposent toutefois pas encore de titre ni de métriques exploitables dans le format normalisé : ils sont temporairement enregistrés sous la forme `youtube trending item N`, avec un score de tendance de 18 et une confiance de 26. L’adaptateur doit être enrichi lorsque le schéma de contenu précis du fournisseur sera disponible afin de substituer ces libellés de secours par les métadonnées réelles.
+
+L’analyse sémantique des articles officiels dépend également d’une clé Anthropic créditée. En l’absence de crédit, les erreurs d’analyse sont isolées et n’empêchent ni le cron ni la persistance des signaux SocialCrawl. Le détail de l’activation est conservé dans [`reports/production-activation-findings.md`](./reports/production-activation-findings.md).
+
+---
+
 ## 🚀 Installation locale
 
 ### Prérequis
@@ -366,6 +384,8 @@ Après cache :  ~70 req Claude (7%) × $0.50 = $35/mois
 - [x] Dashboard analytics premium
 - [x] Auth multi-user Supabase
 - [x] Algorithm Observatory : modèle social unifié, preuves et score de tendance
+- [x] Activation de production : migration, cron et premier flux SocialCrawl vérifiés
+- [ ] Enrichir le mapping SocialCrawl avec les titres, URLs et métriques réelles des tendances YouTube
 - [ ] Adaptateurs dédiés pour les APIs sociales autorisées
 - [ ] Mode comparaison 2 plateformes
 - [ ] Streaming responses (progressive rendering)
