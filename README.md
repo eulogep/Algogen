@@ -248,7 +248,14 @@ STRIPE_PRO_PRICE_ID=price_...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 VERCEL_CRON_SECRET=ton_secret_random
 
-# Algorithm Observatory (facultatif)
+# Algorithm Observatory — SocialCrawl direct (facultatif)
+# Clé serveur uniquement : ne jamais l’exposer côté navigateur.
+SOCIALCRAWL_API_KEY=sc_...
+SOCIALCRAWL_REGION=US
+# Valeur initiale recommandée : youtube. Ajouter tiktok/instagram après validation du budget.
+SOCIALCRAWL_SOURCES=youtube
+
+# Algorithm Observatory — adaptateur externe alternatif (facultatif)
 # Le flux doit répondre avec { "signals": SocialSignal[] }, voir ALGORITHM_OBSERVATORY.md
 ALGOLENS_SIGNAL_FEED_URL=https://votre-adaptateur.example.com/signals
 ALGOLENS_SIGNAL_FEED_TOKEN=optionnel_bearer_token

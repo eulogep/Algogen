@@ -79,11 +79,13 @@ La confiance est distincte du score de tendance. Elle dépend du nombre de preuv
 
 1. Exécutez `supabase/migrations/008_algorithm_observatory.sql` dans le projet Supabase après les migrations existantes.
 2. Conservez la veille officielle sans configuration supplémentaire.
-3. Pour connecter une instance ou un adaptateur de tendances, définissez `ALGOLENS_SIGNAL_FEED_URL` et, si nécessaire, `ALGOLENS_SIGNAL_FEED_TOKEN` dans les variables de déploiement.
-4. Déclenchez la route de veille prévue ou utilisez le rafraîchissement manuel depuis l’application avec un compte éligible.
+3. Pour activer **SocialCrawl directement**, ajoutez `SOCIALCRAWL_API_KEY` dans les variables de déploiement. Le fournisseur est détecté automatiquement au prochain appel de veille.
+4. Configurez éventuellement `SOCIALCRAWL_REGION` (défaut : `US`) et `SOCIALCRAWL_SOURCES`. La valeur par défaut est `youtube`, pour une collecte initiale à faible coût. Ajoutez `tiktok` ou `instagram` sous la forme `youtube,tiktok` après validation de votre budget de crédits.
+5. Vous pouvez alternativement connecter une instance ou un adaptateur de tendances en définissant `ALGOLENS_SIGNAL_FEED_URL` et, si nécessaire, `ALGOLENS_SIGNAL_FEED_TOKEN`.
+6. Déclenchez la route de veille prévue ou utilisez le rafraîchissement manuel depuis l’application avec un compte éligible.
 
-La collecte est volontairement découplée des API de tiers. Pour connecter Trendgetter, SocialCrawl ou une API propriétaire, implémentez un adaptateur qui émet ce contrat plutôt que de lier le cœur d’Algogen à un endpoint non versionné.
+Le fournisseur SocialCrawl utilise son API serveur avec l’en-tête `x-api-key`; la clé ne quitte jamais l’environnement de serveur. Les appels initiaux s’appuient sur les instantanés de tendances YouTube, TikTok et Instagram documentés par SocialCrawl. La collecte est volontairement découplée des autres API de tiers. Pour connecter Trendgetter ou une API propriétaire, implémentez un adaptateur qui émet le contrat canonique plutôt que de lier le cœur d’Algogen à un endpoint non versionné.
 
 ## Références
 
-La conception s’inspire de l’approche de collecte planifiée, d’analyse et de notification de [TrendFinder](https://github.com/ericciarla/trendFinder), ainsi que de l’abstraction multi-plateformes de [Trendgetter](https://github.com/Zivsteve/trendgetter). Les constats de consultation sont consignés dans [`reports/reference-repositories-findings.md`](./reports/reference-repositories-findings.md).
+La conception s’inspire de l’approche de collecte planifiée, d’analyse et de notification de [TrendFinder](https://github.com/ericciarla/trendFinder), de l’abstraction multi-plateformes de [Trendgetter](https://github.com/Zivsteve/trendgetter) et des contrats d’API de [SocialCrawl](https://socialcrawl.dev/docs). Les constats de consultation sont consignés dans [`reports/reference-repositories-findings.md`](./reports/reference-repositories-findings.md).

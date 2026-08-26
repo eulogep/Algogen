@@ -6,6 +6,8 @@ import {
   createOfficialNewsroomProvider,
 } from "@/lib/observatory/providers";
 import { persistObservatoryResults } from "@/lib/observatory/persistence";
+import { createSocialCrawlProvider } from "@/lib/observatory/socialcrawl";
+import type { TrendProvider } from "@/lib/observatory/types";
 import { scrapeAllSources, type ScrapedArticle } from "@/lib/scraper";
 
 export const runtime = "nodejs";
@@ -35,9 +37,12 @@ export async function GET(req: NextRequest) {
       return officialArticles;
     });
     const configuredProvider = createConfiguredSignalFeedProvider();
-    const providers = configuredProvider
-      ? [officialProvider, configuredProvider]
-      : [officialProvider];
+    const socialCrawlProvider = createSocialCrawlProvider();
+    const providers: TrendProvider[] = [
+      officialProvider,
+      ...(configuredProvider ? [configuredProvider] : []),
+      ...(socialCrawlProvider ? [socialCrawlProvider] : []),
+    ];
 
     const observatory = await runObservatory(providers, now);
     const updates = await analyzeArticlesBatch(officialArticles);

@@ -7,6 +7,8 @@ import {
   createOfficialNewsroomProvider,
 } from "@/lib/observatory/providers";
 import { persistObservatoryResults } from "@/lib/observatory/persistence";
+import { createSocialCrawlProvider } from "@/lib/observatory/socialcrawl";
+import type { TrendProvider } from "@/lib/observatory/types";
 import { getSessionUser, getUserPlan } from "@/lib/plans";
 import { scrapeAllSources, type ScrapedArticle } from "@/lib/scraper";
 
@@ -64,9 +66,12 @@ export async function POST() {
       return officialArticles;
     });
     const configuredProvider = createConfiguredSignalFeedProvider();
-    const providers = configuredProvider
-      ? [officialProvider, configuredProvider]
-      : [officialProvider];
+    const socialCrawlProvider = createSocialCrawlProvider();
+    const providers: TrendProvider[] = [
+      officialProvider,
+      ...(configuredProvider ? [configuredProvider] : []),
+      ...(socialCrawlProvider ? [socialCrawlProvider] : []),
+    ];
 
     const observatory = await runObservatory(providers);
     const updates = await analyzeArticlesBatch(officialArticles);
