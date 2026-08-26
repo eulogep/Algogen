@@ -62,7 +62,7 @@ Le dashboard expose en live le ratio L1/L2/API miss, les économies générées 
 
 ![Demo Updates](./public/demos/updates.png)
 
-Chaque lundi à 8h UTC, le cron scrape les newsrooms officielles (TikTok, Instagram, YouTube...) et publie automatiquement les changements d'algo avec leur niveau d'impact.
+Chaque lundi à 8h UTC, le cron collecteur conserve les newsrooms officielles comme sources de référence, normalise les signaux disponibles et publie les changements d'algo avec leur impact, leur niveau de confiance et leurs preuves.
 
 </details>
 
@@ -143,8 +143,11 @@ Connexion sans mot de passe via magic link. Chaque utilisateur dispose de son hi
 
 - Cron Vercel chaque lundi 8h UTC
 - Scraping des newsrooms officielles (zero dépendance Puppeteer)
-- Analyse par Claude → JSON structuré avec impact `low/medium/high`
-- Feed `/updates` filtrable par plateforme
+- Normalisation des signaux officiels et des flux de tendances configurés
+- Moteur déterministe : vélocité, accélération, engagement, nouveauté, diffusion multi-plateforme et confiance
+- Analyse par Claude limitée à la qualification des changements issus de sources officielles
+- Feed `/updates` filtrable par plateforme, avec score de tendance et compte de preuves
+- Contrat d’intégration documenté dans [`ALGORITHM_OBSERVATORY.md`](./ALGORITHM_OBSERVATORY.md)
 
 </td>
 <td width="50%">
@@ -244,6 +247,18 @@ STRIPE_PRO_PRICE_ID=price_...
 # App
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 VERCEL_CRON_SECRET=ton_secret_random
+
+# Algorithm Observatory — SocialCrawl direct (facultatif)
+# Clé serveur uniquement : ne jamais l’exposer côté navigateur.
+SOCIALCRAWL_API_KEY=sc_...
+SOCIALCRAWL_REGION=US
+# Valeur initiale recommandée : youtube. Ajouter tiktok/instagram après validation du budget.
+SOCIALCRAWL_SOURCES=youtube
+
+# Algorithm Observatory — adaptateur externe alternatif (facultatif)
+# Le flux doit répondre avec { "signals": SocialSignal[] }, voir ALGORITHM_OBSERVATORY.md
+ALGOLENS_SIGNAL_FEED_URL=https://votre-adaptateur.example.com/signals
+ALGOLENS_SIGNAL_FEED_TOKEN=optionnel_bearer_token
 ```
 
 ### 3. Migrations Supabase
@@ -251,11 +266,13 @@ VERCEL_CRON_SECRET=ton_secret_random
 Dans **Supabase Dashboard → SQL Editor**, exécuter dans l'ordre :
 
 ```bash
-supabase/migrations/001_init.sql           # Profils + stratégies
 supabase/migrations/002_strategy_cache.sql  # Cache L2
 supabase/migrations/003_algorithm_updates.sql # Veille algo
 supabase/migrations/004_cache_stats_history.sql # Snapshots analytics
 supabase/migrations/005_profiles.sql        # Auth multi-user
+supabase/migrations/006_billing_history_and_security.sql
+supabase/migrations/007_b2b_workspaces_and_experiments.sql
+supabase/migrations/008_algorithm_observatory.sql # Signaux, preuves et tendances
 ```
 
 ### 4. Lancer
@@ -348,6 +365,8 @@ Après cache :  ~70 req Claude (7%) × $0.50 = $35/mois
 - [x] Veille algorithmique automatisée
 - [x] Dashboard analytics premium
 - [x] Auth multi-user Supabase
+- [x] Algorithm Observatory : modèle social unifié, preuves et score de tendance
+- [ ] Adaptateurs dédiés pour les APIs sociales autorisées
 - [ ] Mode comparaison 2 plateformes
 - [ ] Streaming responses (progressive rendering)
 - [ ] Smart TTL adaptatif
