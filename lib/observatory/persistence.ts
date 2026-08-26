@@ -45,6 +45,10 @@ function jsonSafe(value: unknown): unknown {
   return value === undefined ? null : sanitizeUnicode(String(value));
 }
 
+function sanitizePersistenceRow<T extends object>(row: T): T {
+  return jsonSafe(row) as T;
+}
+
 export async function persistObservatoryResults(
   updates: AlgoUpdate[],
   observations: TrendObservation[]
@@ -54,22 +58,24 @@ export async function persistObservatoryResults(
   let observationsUpserted = 0;
 
   if (updates.length > 0) {
-    const rows = updates.map((update) => ({
-      platform: update.platform,
-      summary: update.summary,
-      impact_level: update.impact_level,
-      affected_areas: update.affected_areas,
-      action_for_creators: update.action_for_creators,
-      source_url: update.source_url,
-      source_title: update.source_title,
-      date_detected: update.date_detected,
-      signal_confidence: update.confidence,
-      evidence_count: update.evidenceCount,
-      source_type: update.sourceType,
-      affected_formats: update.affectedFormats,
-      affected_creators: update.affectedCreators,
-      observatory_evidence: jsonSafe(update.evidence),
-    }));
+    const rows = updates.map((update) =>
+      sanitizePersistenceRow({
+        platform: update.platform,
+        summary: update.summary,
+        impact_level: update.impact_level,
+        affected_areas: update.affected_areas,
+        action_for_creators: update.action_for_creators,
+        source_url: update.source_url,
+        source_title: update.source_title,
+        date_detected: update.date_detected,
+        signal_confidence: update.confidence,
+        evidence_count: update.evidenceCount,
+        source_type: update.sourceType,
+        affected_formats: update.affectedFormats,
+        affected_creators: update.affectedCreators,
+        observatory_evidence: update.evidence,
+      })
+    );
 
     const { data, error } = await supabase
       .from("algorithm_updates")
@@ -85,7 +91,7 @@ export async function persistObservatoryResults(
       .from("trend_observations")
       .upsert(observations.map((observation) => {
         const persisted = toPersistedObservation(observation);
-        return { ...persisted, evidence: jsonSafe(persisted.evidence) };
+        return sanitizePersistenceRow(persisted);
       }), {
         onConflict: "topic_key,detected_on",
       })
