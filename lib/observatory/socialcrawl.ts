@@ -9,6 +9,7 @@ const SOCIALCRAWL_BASE_URL = "https://www.socialcrawl.dev/v1";
 const REQUEST_TIMEOUT_MS = 20_000;
 
 type SocialCrawlSource = "youtube" | "tiktok" | "instagram";
+type SocialCrawlProviderSource = SocialCrawlSource | "twitter";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -31,6 +32,8 @@ interface SocialCrawlPost {
     shares?: unknown;
   };
   published_at?: unknown;
+  created_at?: unknown;
+  text?: unknown;
   ext?: {
     title?: unknown;
     description?: unknown;
@@ -45,6 +48,8 @@ interface SocialCrawlEnvelope {
   success?: unknown;
   data?: {
     items?: unknown;
+    posts?: unknown;
+    tweets?: unknown;
   };
   error?: {
     type?: unknown;
@@ -53,7 +58,7 @@ interface SocialCrawlEnvelope {
 }
 
 interface SourceDefinition {
-  source: SocialCrawlSource;
+  source: SocialCrawlProviderSource;
   platform: SignalPlatform;
   path: (region: string) => string;
 }
@@ -142,6 +147,7 @@ function safePublishedAt(value: unknown, fallback: string): string {
 function titleFromPost(post: SocialCrawlPost): string | undefined {
   return (
     asString(post.title) ??
+    asString(post.text) ??
     asString(post.content?.title) ??
     asString(post.ext?.title) ??
     asString(post.content?.text) ??
@@ -158,18 +164,19 @@ function toSocialSignal(
   computed: SocialCrawlComputed | undefined,
   definition: SourceDefinition,
   index: number,
-  now: Date
+  now: Date,
+  sourceType: SocialSignal["sourceType"] = "trend_feed"
 ): SocialSignal {
   const fallbackUrl = `https://www.socialcrawl.dev/evidence/${definition.source}/${index}`;
   const id = asString(post.id) ?? `${definition.source}:${index}:${now.getTime()}`;
   const url = asString(post.url) ?? fallbackUrl;
   const title = titleFromPost(post);
-  const publishedAt = safePublishedAt(post.published_at, now.toISOString());
+  const publishedAt = safePublishedAt(post.published_at ?? post.created_at, now.toISOString());
 
   return {
     id: `socialcrawl:${definition.source}:${id}`,
     platform: definition.platform,
-    sourceType: "trend_feed",
+    sourceType,
     topic: topicFromPost(post, `${definition.source} trending item ${index + 1}`),
     url,
     title,
@@ -223,6 +230,102 @@ async function fetchSource(
     .map(unwrapSocialCrawlItem)
     .filter((item): item is { post: SocialCrawlPost; computed?: SocialCrawlComputed } => item !== null)
     .map((item, index) => toSocialSignal(item.post, item.computed, definition, index, context.now));
+}
+
+const X_NEWSROOM_DEFINITION: SourceDefinition = {
+  source: "twitter",
+  platform: "x_twitter",
+  path: () => "/twitter/user/tweets",
+};
+
+function parseXHandles(value: string | undefined): string[] {
+  const handles = (value ?? "XDevelopers,X")
+    .split(",")
+    .map((handle) => handle.trim().replace(/^@/, ""))
+    .filter((handle) => /^[A-Za-z0-9_]{1,15}$/.test(handle));
+  return [...new Set(handles)];
+}
+
+function socialCrawlItems(body: SocialCrawlEnvelope | null): unknown[] {
+  const data = body?.data;
+  if (!data) return [];
+  if (Array.isArray(data.posts)) return data.posts;
+  if (Array.isArray(data.tweets)) return data.tweets;
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+async function fetchXNewsroomHandle(
+  handle: string,
+  apiKey: string,
+  context: TrendProviderContext
+): Promise<SocialSignal[]> {
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  const signal = context.signal
+    ? AbortSignal.any([context.signal, timeout])
+    : timeout;
+  const response = await fetch(
+    `${SOCIALCRAWL_BASE_URL}/twitter/user/tweets?handle=${encodeURIComponent(handle)}&trim=true`,
+    {
+      headers: {
+        Accept: "application/json",
+        "x-api-key": apiKey,
+        "Idempotency-Key": crypto.randomUUID(),
+      },
+      signal,
+    }
+  );
+  const body = (await response.json().catch(() => null)) as SocialCrawlEnvelope | null;
+  if (!response.ok || body?.success !== true) {
+    const errorType = asString(body?.error?.type) ?? `HTTP_${response.status}`;
+    const errorMessage = asString(body?.error?.message) ?? "SocialCrawl X request failed";
+    throw new Error(`SocialCrawl X @${handle}: ${errorType} — ${errorMessage}`);
+  }
+
+  return socialCrawlItems(body)
+    .map(unwrapSocialCrawlItem)
+    .filter((item): item is { post: SocialCrawlPost; computed?: SocialCrawlComputed } => item !== null)
+    .slice(0, 12)
+    .map((item, index) =>
+      toSocialSignal(item.post, item.computed, X_NEWSROOM_DEFINITION, index, context.now, "official_newsroom")
+    );
+}
+
+/**
+ * Remplace le scraping HTML de blog.x.com, bloqué en 403, par les publications
+ * des comptes officiels X collectées via SocialCrawl. Sans clé, aucun appel n’est fait.
+ */
+export function createXNewsroomFallbackProvider(
+  apiKey = process.env.SOCIALCRAWL_API_KEY,
+  handles = process.env.SOCIALCRAWL_X_HANDLES
+): TrendProvider | null {
+  if (!apiKey) return null;
+  const configuredHandles = parseXHandles(handles);
+  if (configuredHandles.length === 0) return null;
+
+  return {
+    id: `socialcrawl:x-newsroom:${configuredHandles.join(",")}`,
+    async fetchSignals(context: TrendProviderContext): Promise<SocialSignal[]> {
+      const results = await Promise.allSettled(
+        configuredHandles.map((handle) => fetchXNewsroomHandle(handle, apiKey, context))
+      );
+      const signals: SocialSignal[] = [];
+      const failures: string[] = [];
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          signals.push(...result.value);
+        } else {
+          failures.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
+        }
+      }
+      if (signals.length === 0 && failures.length > 0) {
+        throw new Error(failures.join(" | "));
+      }
+      if (failures.length > 0) {
+        console.warn("[socialcrawl] X newsroom partial collection:", failures.join(" | "));
+      }
+      return [...new Map(signals.map((signal) => [signal.id, signal])).values()];
+    },
+  };
 }
 
 /**

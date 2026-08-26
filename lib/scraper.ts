@@ -31,9 +31,8 @@ const PLATFORM_SOURCES: Record<string, { url: string; platform: string }[]> = {
   linkedin: [
     { url: "https://www.linkedin.com/blog/", platform: "linkedin" },
   ],
-  twitter: [
-    { url: "https://blog.x.com", platform: "twitter" },
-  ],
+  // X est collecté via SocialCrawl dans l’observatoire : blog.x.com bloque
+  // le HTML automatisé par HTTP 403 et ne doit donc pas faire échouer ce scraper.
 };
 
 const ALGO_KEYWORDS = [

@@ -7,7 +7,10 @@ import {
   createOfficialNewsroomProvider,
 } from "@/lib/observatory/providers";
 import { persistObservatoryResults } from "@/lib/observatory/persistence";
-import { createSocialCrawlProvider } from "@/lib/observatory/socialcrawl";
+import {
+  createSocialCrawlProvider,
+  createXNewsroomFallbackProvider,
+} from "@/lib/observatory/socialcrawl";
 import type { TrendProvider } from "@/lib/observatory/types";
 import { getSessionUser, getUserPlan } from "@/lib/plans";
 import { scrapeAllSources, type ScrapedArticle } from "@/lib/scraper";
@@ -67,15 +70,17 @@ export async function POST() {
     });
     const configuredProvider = createConfiguredSignalFeedProvider();
     const socialCrawlProvider = createSocialCrawlProvider();
+    const xNewsroomProvider = createXNewsroomFallbackProvider();
     const providers: TrendProvider[] = [
       officialProvider,
       ...(configuredProvider ? [configuredProvider] : []),
       ...(socialCrawlProvider ? [socialCrawlProvider] : []),
+      ...(xNewsroomProvider ? [xNewsroomProvider] : []),
     ];
 
     const observatory = await runObservatory(providers);
-    const updates = await analyzeArticlesBatch(officialArticles);
-    const persisted = await persistObservatoryResults(updates, observatory.observations);
+    const analysis = await analyzeArticlesBatch(officialArticles);
+    const persisted = await persistObservatoryResults(analysis.updates, observatory.observations);
 
     return NextResponse.json({
       inserted: persisted.updatesInserted,
@@ -83,6 +88,8 @@ export async function POST() {
       articlesScraped: officialArticles.length,
       signalsCollected: observatory.signals.length,
       trendsDetected: observatory.observations.length,
+      analyzerAttempted: analysis.attempted,
+      analyzerFailed: analysis.failed,
       providers: observatory.providerResults,
       message: `${persisted.updatesInserted} changements et ${persisted.observationsUpserted} tendances sauvegardés`,
     });

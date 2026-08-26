@@ -1,8 +1,7 @@
 /**
  * algo-analyzer.ts
- * Analyse les articles scrapés avec Claude pour détecter les vrais changements d'algo.
- * Les scores de confiance et la provenance sont calculés côté application, pas
- * délégués au modèle de langage.
+ * Analyse des articles newsroom avec Claude ; les scores de confiance et la
+ * provenance restent calculés côté application.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -29,6 +28,13 @@ export interface AlgoUpdate {
   affectedFormats: string[];
   affectedCreators: string[];
   evidence: TrendEvidence[];
+}
+
+export interface AnalysisBatchResult {
+  updates: AlgoUpdate[];
+  attempted: number;
+  failed: number;
+  failures: string[];
 }
 
 interface ModelUpdate {
@@ -96,61 +102,57 @@ function sourcePlatform(platform: string): SignalPlatform {
 }
 
 function buildEvidence(article: ScrapedArticle): TrendEvidence[] {
-  return [
-    {
-      id: `official:${article.platform}:${article.url}:${article.title}`,
-      platform: sourcePlatform(article.platform),
-      sourceType: "official_newsroom",
-      url: article.url,
-      title: article.title,
-      detectedAt: article.scrapedAt,
-    },
-  ];
+  return [{
+    id: `official:${article.platform}:${article.url}:${article.title}`,
+    platform: sourcePlatform(article.platform),
+    sourceType: "official_newsroom",
+    url: article.url,
+    title: article.title,
+    detectedAt: article.scrapedAt,
+  }];
 }
 
-/**
- * Analyse un article avec Claude. Les attributs de preuve sont ensuite ajoutés
- * de manière déterministe à partir de la source réellement collectée.
- */
-export async function analyzeUpdateWithClaude(
-  article: ScrapedArticle
-): Promise<AlgoUpdate | null> {
+async function analyzeArticleWithClaude(article: ScrapedArticle): Promise<AlgoUpdate> {
+  const message = await client.messages.create({
+    model: "claude-3-5-sonnet-20241022",
+    max_tokens: 640,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: buildAnalysisPrompt(article) }],
+  });
+
+  const rawText = message.content[0].type === "text" ? message.content[0].text : "";
+  const parsed = JSON.parse(rawText.trim()) as ModelUpdate;
+  const hasUpdate = parsed.has_update === true;
+
+  return {
+    platform: article.platform,
+    has_update: hasUpdate,
+    summary:
+      typeof parsed.summary === "string" && parsed.summary.trim()
+        ? parsed.summary.trim()
+        : "Aucun changement détecté",
+    impact_level: hasUpdate ? asImpactLevel(parsed.impact_level) : "low",
+    affected_areas: hasUpdate ? asStringArray(parsed.affected_areas) : [],
+    action_for_creators:
+      hasUpdate && typeof parsed.action_for_creators === "string"
+        ? parsed.action_for_creators.trim()
+        : "",
+    date_detected: new Date().toISOString().split("T")[0],
+    source_url: article.url,
+    source_title: article.title,
+    confidence: 60,
+    evidenceCount: 1,
+    sourceType: "official_newsroom",
+    affectedFormats: hasUpdate ? asStringArray(parsed.affected_formats) : [],
+    affectedCreators: hasUpdate ? asStringArray(parsed.affected_creators) : [],
+    evidence: buildEvidence(article),
+  };
+}
+
+/** Analyse un article et conserve le contrat tolérant aux erreurs existant. */
+export async function analyzeUpdateWithClaude(article: ScrapedArticle): Promise<AlgoUpdate | null> {
   try {
-    const message = await client.messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 640,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: buildAnalysisPrompt(article) }],
-    });
-
-    const rawText =
-      message.content[0].type === "text" ? message.content[0].text : "";
-    const parsed = JSON.parse(rawText.trim()) as ModelUpdate;
-    const hasUpdate = parsed.has_update === true;
-
-    return {
-      platform: article.platform,
-      has_update: hasUpdate,
-      summary:
-        typeof parsed.summary === "string" && parsed.summary.trim()
-          ? parsed.summary.trim()
-          : "Aucun changement détecté",
-      impact_level: hasUpdate ? asImpactLevel(parsed.impact_level) : "low",
-      affected_areas: hasUpdate ? asStringArray(parsed.affected_areas) : [],
-      action_for_creators:
-        hasUpdate && typeof parsed.action_for_creators === "string"
-          ? parsed.action_for_creators.trim()
-          : "",
-      date_detected: new Date().toISOString().split("T")[0],
-      source_url: article.url,
-      source_title: article.title,
-      confidence: 60,
-      evidenceCount: 1,
-      sourceType: "official_newsroom",
-      affectedFormats: hasUpdate ? asStringArray(parsed.affected_formats) : [],
-      affectedCreators: hasUpdate ? asStringArray(parsed.affected_creators) : [],
-      evidence: buildEvidence(article),
-    };
+    return await analyzeArticleWithClaude(article);
   } catch (err) {
     console.error(`[algo-analyzer] Erreur analyse "${article.title}":`, err);
     return null;
@@ -158,25 +160,30 @@ export async function analyzeUpdateWithClaude(
 }
 
 /**
- * Analyse une liste d'articles en parallèle (avec rate limiting basique).
+ * Analyse une liste d’articles par groupes limités et expose les erreurs au
+ * cron, afin qu’un solde Anthropic épuisé ne soit plus traité comme un succès.
  */
 export async function analyzeArticlesBatch(
   articles: ScrapedArticle[],
   concurrency = 3
-): Promise<AlgoUpdate[]> {
+): Promise<AnalysisBatchResult> {
   const updates: AlgoUpdate[] = [];
+  const failures: string[] = [];
 
   for (let index = 0; index < articles.length; index += concurrency) {
     const chunk = articles.slice(index, index + concurrency);
-    const results = await Promise.allSettled(
-      chunk.map((article) => analyzeUpdateWithClaude(article))
-    );
+    const results = await Promise.allSettled(chunk.map((article) => analyzeArticleWithClaude(article)));
 
-    for (const result of results) {
-      if (result.status === "fulfilled" && result.value?.has_update) {
-        updates.push(result.value);
+    results.forEach((result, resultIndex) => {
+      if (result.status === "fulfilled") {
+        if (result.value.has_update) updates.push(result.value);
+        return;
       }
-    }
+      const article = chunk[resultIndex];
+      const reason = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      console.error(`[algo-analyzer] Erreur analyse "${article.title}":`, result.reason);
+      failures.push(`${article.platform}: ${article.title} — ${reason}`);
+    });
 
     if (index + concurrency < articles.length) {
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -184,7 +191,8 @@ export async function analyzeArticlesBatch(
   }
 
   console.log(
-    `[algo-analyzer] ${updates.length} vraies mises à jour sur ${articles.length} articles analysés`
+    `[algo-analyzer] ${updates.length} vraies mises à jour sur ${articles.length} articles analysés (${failures.length} échecs)`
   );
-  return updates;
+
+  return { updates, attempted: articles.length, failed: failures.length, failures };
 }
