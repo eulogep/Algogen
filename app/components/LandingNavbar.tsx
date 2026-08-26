@@ -34,8 +34,20 @@ export default function LandingNavbar() {
         {/* Action Buttons */}
         <div className="flex items-center gap-3 sm:gap-5">
           <Link
+            href="/demo"
+            className="hidden sm:inline text-[13px] text-[#a1a1aa] transition-colors hover:text-[#fafafa]"
+          >
+            Démo live
+          </Link>
+          <Link
+            href="/about"
+            className="hidden lg:inline text-[13px] text-[#a1a1aa] transition-colors hover:text-[#fafafa]"
+          >
+            À propos
+          </Link>
+          <Link
             href="/lyrics"
-            className="hidden md:inline text-[13px] text-[#86efac] transition-colors hover:text-[#fafafa]"
+            className="hidden xl:inline text-[13px] text-[#86efac] transition-colors hover:text-[#fafafa]"
           >
             Laboratoire lexical
           </Link>
