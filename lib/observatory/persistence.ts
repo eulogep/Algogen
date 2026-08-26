@@ -8,6 +8,43 @@ export interface ObservatoryPersistenceResult {
   observationsUpserted: number;
 }
 
+/** Évite les surrogates UTF-16 non appariés dans les colonnes jsonb Supabase. */
+function sanitizeUnicode(value: string): string {
+  let output = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        output += value[index] + value[index + 1];
+        index += 1;
+      } else {
+        output += "�";
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      output += "�";
+    } else {
+      output += value[index];
+    }
+  }
+  return output;
+}
+
+function jsonSafe(value: unknown): unknown {
+  if (typeof value === "string") return sanitizeUnicode(value);
+  if (typeof value === "number" || typeof value === "boolean" || value === null) return value;
+  if (Array.isArray(value)) return value.map(jsonSafe);
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        sanitizeUnicode(key),
+        jsonSafe(entry),
+      ])
+    );
+  }
+  return value === undefined ? null : sanitizeUnicode(String(value));
+}
+
 export async function persistObservatoryResults(
   updates: AlgoUpdate[],
   observations: TrendObservation[]
@@ -31,7 +68,7 @@ export async function persistObservatoryResults(
       source_type: update.sourceType,
       affected_formats: update.affectedFormats,
       affected_creators: update.affectedCreators,
-      observatory_evidence: update.evidence,
+      observatory_evidence: jsonSafe(update.evidence),
     }));
 
     const { data, error } = await supabase
@@ -46,7 +83,10 @@ export async function persistObservatoryResults(
   if (observations.length > 0) {
     const { data, error } = await supabase
       .from("trend_observations")
-      .upsert(observations.map(toPersistedObservation), {
+      .upsert(observations.map((observation) => {
+        const persisted = toPersistedObservation(observation);
+        return { ...persisted, evidence: jsonSafe(persisted.evidence) };
+      }), {
         onConflict: "topic_key,detected_on",
       })
       .select("id");
